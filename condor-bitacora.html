@@ -1,0 +1,796 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<style>
+  :root{
+    --verde:#40673b;
+    --verde-claro:#d7e5d0;
+    --durazno:#f6d3ce;
+    --tierra:#171c14;
+    --tierra-2:#20261c;
+    --crema:#f2f0e8;
+    --gris:#9aa593;
+    --linea:#333d2e;
+    --alerta:#e0705e;
+    --ok:#8fc07a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  #app{
+    position:relative;width:100%;height:100vh;max-height:840px;min-height:600px;
+    overflow:hidden;background:var(--tierra);color:var(--crema);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px;line-height:1.4;display:flex;flex-direction:column;
+  }
+  .num{font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+
+  #barra{
+    flex:0 0 auto;background:var(--tierra);border-bottom:1px solid var(--linea);
+    padding:10px 14px;display:flex;align-items:baseline;gap:10px;z-index:600;
+  }
+  #barra h1{font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  #barra .sub{color:var(--gris);font-size:12px;}
+  #barra .resumen{margin-left:auto;text-align:right;}
+  #barra .resumen b{font-size:16px;font-weight:600;}
+  #barra .resumen span{display:block;color:var(--gris);font-size:11px;}
+
+  #wrap-mapa{position:relative;flex:1 1 auto;min-height:0;}
+  #mapa{position:absolute;inset:0;background:#1a1f17;}
+  .leaflet-container{background:#1a1f17;font-family:inherit;}
+  .leaflet-control-attribution{font-size:9px;background:rgba(23,28,20,.7);color:#889;}
+  .leaflet-control-attribution a{color:#aab;}
+  .lote-tag{
+    background:rgba(23,28,20,.85);border:1px solid var(--linea);color:var(--crema);
+    padding:2px 7px;border-radius:3px;font-size:11px;font-weight:600;white-space:nowrap;
+  }
+  .lote-tag.virgen{color:var(--gris);}
+
+  #flotantes{position:absolute;right:12px;bottom:12px;z-index:500;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+  .fab{
+    background:var(--verde);color:#fff;border:none;border-radius:22px;padding:11px 16px;
+    font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.45);
+  }
+  .fab.sec{background:var(--tierra-2);color:var(--crema);border:1px solid var(--linea);}
+  .fab:active{transform:translateY(1px);}
+
+  #modo-dibujo{
+    position:absolute;left:12px;right:12px;bottom:12px;z-index:550;background:var(--tierra);
+    border:1px solid var(--verde);border-radius:8px;padding:12px 14px;display:none;
+  }
+  #modo-dibujo.on{display:block;}
+  #modo-dibujo p{font-size:13px;color:var(--verde-claro);margin-bottom:10px;}
+  #modo-dibujo .fila{display:flex;gap:8px;}
+  #modo-dibujo button{flex:1;}
+
+  #panel{
+    flex:0 0 auto;background:var(--tierra);border-top:1px solid var(--linea);
+    max-height:64%;overflow-y:auto;-webkit-overflow-scrolling:touch;z-index:600;
+  }
+  #panel.chico{max-height:210px;}
+  .p-cabeza{
+    position:sticky;top:0;background:var(--tierra);border-bottom:1px solid var(--linea);
+    padding:11px 14px;display:flex;align-items:center;gap:10px;z-index:2;
+  }
+  .p-cabeza h2{font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .p-cabeza .meta{color:var(--gris);font-size:12px;}
+  .p-cabeza .cerrar{margin-left:auto;background:none;border:none;color:var(--gris);font-size:20px;cursor:pointer;font-family:inherit;line-height:1;padding:0 4px;}
+  .p-cuerpo{padding:12px 14px 18px;}
+
+  .lote-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--linea);cursor:pointer;}
+  .lote-item:last-child{border-bottom:none;}
+  .pip{width:9px;height:9px;border-radius:2px;flex:0 0 auto;}
+  .lote-item .nom{font-weight:600;font-size:14px;}
+  .lote-item .est{color:var(--gris);font-size:12px;}
+  .lote-item .der{margin-left:auto;text-align:right;}
+  .lote-item .der b{font-size:14px;font-weight:600;}
+  .lote-item .der span{display:block;color:var(--gris);font-size:11px;}
+
+  .trabajo{border-left:2px solid var(--verde);padding:9px 0 12px 11px;margin-bottom:14px;}
+  .trabajo .top{display:flex;align-items:baseline;gap:8px;margin-bottom:5px;}
+  .trabajo .fecha{font-weight:600;font-size:14px;}
+  .trabajo .tipo{color:var(--verde-claro);font-size:12px;}
+  .trabajo .detalle{color:var(--gris);font-size:12.5px;line-height:1.5;}
+  .trabajo .plata{display:flex;gap:16px;margin-top:8px;padding-top:8px;border-top:1px solid var(--linea);}
+  .trabajo .plata div span{display:block;color:var(--gris);font-size:10.5px;}
+  .trabajo .plata div b{font-size:14px;font-weight:600;}
+  .trabajo .pie{display:flex;gap:10px;margin-top:9px;}
+  .mini{
+    background:var(--tierra-2);border:1px solid var(--linea);color:var(--crema);
+    border-radius:5px;padding:6px 11px;font-size:12.5px;font-family:inherit;cursor:pointer;font-weight:600;
+  }
+  .mini.roja{color:var(--alerta);border-color:transparent;background:none;font-weight:400;padding-left:0;}
+  .neg{color:var(--alerta);} .pos{color:var(--ok);}
+  .vacio{color:var(--gris);font-size:13.5px;padding:14px 0 18px;}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px;}
+  .campo{display:flex;flex-direction:column;gap:3px;}
+  .campo.ancho{grid-column:1/-1;}
+  .campo label{font-size:11.5px;color:var(--gris);}
+  .campo input,.campo select{
+    background:var(--tierra-2);border:1px solid var(--linea);border-radius:5px;color:var(--crema);
+    padding:9px;font-size:15px;font-family:inherit;width:100%;font-variant-numeric:tabular-nums;
+  }
+  .campo input:focus,.campo select:focus{outline:2px solid var(--verde);outline-offset:0;border-color:var(--verde);}
+  .separador{grid-column:1/-1;color:var(--verde-claro);font-size:12px;font-weight:600;margin-top:9px;padding-top:9px;border-top:1px solid var(--linea);}
+  .acciones{display:flex;gap:9px;margin-top:16px;}
+  .acciones button{flex:1;padding:12px;border-radius:6px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;border:none;}
+  .btn-guardar{background:var(--verde);color:#fff;}
+  .btn-cancelar{background:var(--tierra-2);color:var(--crema);border:1px solid var(--linea);}
+
+  /* tabla de vuelos dentro del form */
+  #vuelos-caja{grid-column:1/-1;}
+  .vuelo-fila{
+    display:grid;grid-template-columns:26px 1fr 1fr 1fr 1fr 26px;gap:6px;align-items:center;margin-bottom:6px;
+  }
+  .vuelo-fila .idx{color:var(--gris);font-size:12px;text-align:center;font-variant-numeric:tabular-nums;}
+  .vuelo-fila input{
+    background:var(--tierra-2);border:1px solid var(--linea);border-radius:4px;color:var(--crema);
+    padding:7px 6px;font-size:14px;font-family:inherit;width:100%;text-align:center;font-variant-numeric:tabular-nums;
+  }
+  .vuelo-fila .quitar{background:none;border:none;color:var(--gris);font-size:16px;cursor:pointer;font-family:inherit;}
+  .vuelos-encabezado{
+    display:grid;grid-template-columns:26px 1fr 1fr 1fr 1fr 26px;gap:6px;
+    color:var(--gris);font-size:10.5px;margin-bottom:5px;text-align:center;
+  }
+  .vuelos-total{
+    display:flex;gap:16px;margin-top:9px;padding-top:9px;border-top:1px solid var(--linea);flex-wrap:wrap;
+  }
+  .vuelos-total div span{display:block;color:var(--gris);font-size:10.5px;}
+  .vuelos-total div b{font-size:14px;font-weight:600;}
+
+  #preview{
+    grid-column:1/-1;background:var(--tierra-2);border:1px solid var(--linea);border-radius:6px;
+    padding:11px 12px;margin-top:12px;display:flex;gap:18px;flex-wrap:wrap;
+  }
+  #preview div span{display:block;color:var(--gris);font-size:10.5px;}
+  #preview div b{font-size:16px;font-weight:600;}
+
+  .tarjetas{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;}
+  .tarjetas div span{display:block;color:var(--gris);font-size:11px;}
+  .tarjetas div b{font-size:19px;font-weight:600;letter-spacing:-.02em;}
+  .rank{border-top:1px solid var(--linea);padding-top:12px;}
+  .rank h3{font-size:12.5px;color:var(--verde-claro);margin-bottom:9px;font-weight:600;}
+  .rank-fila{display:flex;align-items:baseline;gap:10px;padding:6px 0;font-size:13.5px;}
+  .rank-fila .r-nom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rank-fila .r-val{margin-left:auto;font-weight:600;}
+  .barra-mini{height:3px;background:var(--verde);border-radius:2px;margin-top:3px;}
+  .aviso{background:var(--tierra-2);border-left:2px solid var(--durazno);padding:10px 12px;font-size:12.5px;color:var(--verde-claro);margin-bottom:14px;border-radius:0 4px 4px 0;}
+
+  /* visor del informe */
+  #visor{position:absolute;inset:0;background:rgba(10,13,9,.95);z-index:900;display:none;flex-direction:column;}
+  #visor.on{display:flex;}
+  #visor .v-barra{padding:10px 12px;display:flex;gap:9px;align-items:center;border-bottom:1px solid var(--linea);}
+  #visor .v-barra b{font-size:14px;margin-right:auto;}
+  #visor iframe{flex:1;width:100%;border:none;background:#fff;}
+
+  @media (max-width:420px){
+    .form-grid{grid-template-columns:1fr;}
+    .vuelo-fila,.vuelos-encabezado{grid-template-columns:22px 1fr 1fr 1fr 1fr 22px;gap:4px;}
+    .vuelo-fila input{padding:7px 3px;font-size:13px;}
+  }
+</style>
+
+<div id="app">
+  <div id="barra">
+    <div>
+      <h1>Cóndor Agro</h1>
+      <div class="sub">Bitácora de lotes</div>
+    </div>
+    <div class="resumen">
+      <b class="num" id="res-ha">0 ha</b>
+      <span>trabajadas</span>
+    </div>
+  </div>
+
+  <div id="wrap-mapa">
+    <div id="mapa"></div>
+    <div id="flotantes">
+      <button class="fab sec" id="btn-resumen">Números</button>
+      <button class="fab" id="btn-nuevo">+ Lote</button>
+    </div>
+    <div id="modo-dibujo">
+      <p id="dibujo-txt">Tocá las esquinas del lote sobre el mapa.</p>
+      <div class="fila">
+        <button class="fab sec" id="btn-deshacer">Borrar último punto</button>
+        <button class="fab" id="btn-cerrar-lote">Cerrar lote</button>
+      </div>
+      <div class="fila" style="margin-top:8px">
+        <button class="fab sec" id="btn-cancelar-dibujo">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel" class="chico">
+    <div class="p-cabeza">
+      <div>
+        <h2 id="p-titulo">Lotes</h2>
+        <div class="meta" id="p-meta">Cargando…</div>
+      </div>
+      <button class="cerrar" id="p-cerrar" style="display:none">✕</button>
+    </div>
+    <div class="p-cuerpo" id="p-cuerpo"></div>
+  </div>
+
+  <div id="visor">
+    <div class="v-barra">
+      <b>Informe de aplicación</b>
+      <button class="mini" id="v-descargar">Descargar</button>
+      <button class="mini" id="v-cerrar">Cerrar</button>
+    </div>
+    <iframe id="v-frame"></iframe>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var CLAVE = "condor:bitacora:v2";
+  var datos = { lotes: [], trabajos: [] };
+  var mapa, capaLotes, capaDibujo;
+  var dibujando=false, puntosDibujo=[], marcasDibujo=[], lineaDibujo=null;
+  var loteAbierto=null, capasPorLote={}, informeActual={html:"",nombre:"informe.html"};
+
+  /* ---------- utilidades ---------- */
+  function id(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function n(v){ var x=parseFloat(String(v).replace(",",".")); return isFinite(x)?x:0; }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function plata(v){ return (v<0?"-$":"$")+Math.round(Math.abs(v)).toLocaleString("es-AR"); }
+  function nha(v){ return (Math.round(v*10)/10).toLocaleString("es-AR",{maximumFractionDigits:1}); }
+  function n2(v){ return (Math.round(v*100)/100).toLocaleString("es-AR",{maximumFractionDigits:2}); }
+  function fechaCorta(f){ var p=(f||"").split("-"); return p.length===3?p[2]+"/"+p[1]:(f||""); }
+  function fechaLarga(f){
+    var m=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    var p=(f||"").split("-");
+    return p.length===3 ? parseInt(p[2],10)+" de "+m[parseInt(p[1],10)-1]+" de "+p[0] : (f||"");
+  }
+  function tiempo(min){
+    min=Math.round(min);
+    var h=Math.floor(min/60), r=min%60;
+    return h>0 ? h+" h "+r+" min" : r+" min";
+  }
+
+  function hectareas(pts){
+    if(!pts||pts.length<3) return 0;
+    var R=6378137, rad=Math.PI/180, a=0;
+    for(var i=0;i<pts.length;i++){
+      var p=pts[i], q=pts[(i+1)%pts.length];
+      a += (q[1]-p[1])*rad*(2+Math.sin(p[0]*rad)+Math.sin(q[0]*rad));
+    }
+    return Math.abs(a*R*R/2)/10000;
+  }
+  function centro(pts){ var la=0,ln=0; pts.forEach(function(p){la+=p[0];ln+=p[1];}); return [la/pts.length,ln/pts.length]; }
+
+  /* ---------- cálculos de un trabajo ---------- */
+  function vuelos(t){ return (t.vuelos||[]).filter(function(v){ return n(v.ha)||n(v.min)||n(v.litros); }); }
+  function haTrabajo(t){
+    var vs=vuelos(t);
+    if(vs.length){ var s=0; vs.forEach(function(v){ s+=n(v.ha); }); if(s>0) return s; }
+    return n(t.ha);
+  }
+  function minTrabajo(t){
+    var vs=vuelos(t), s=0; vs.forEach(function(v){ s+=n(v.min); });
+    return s>0 ? s : n(t.minutos);
+  }
+  function litrosTrabajo(t){ var s=0; vuelos(t).forEach(function(v){ s+=n(v.litros); }); return s; }
+  function caudalReal(t){ var h=haTrabajo(t), l=litrosTrabajo(t); return h>0&&l>0 ? l/h : n(t.caudal); }
+  function costoTotal(t){ return n(t.g_quimico)+n(t.g_combustible)+n(t.g_viaticos)+n(t.g_otros); }
+  function margen(t){ return n(t.facturado)-costoTotal(t); }
+  function margenHa(t){ var h=haTrabajo(t); return h>0 ? margen(t)/h : 0; }
+
+  /* ---------- persistencia ---------- */
+  async function cargar(){
+    try{
+      var r=await window.storage.get(CLAVE);
+      if(r&&r.value){ var d=JSON.parse(r.value); datos.lotes=d.lotes||[]; datos.trabajos=d.trabajos||[]; }
+    }catch(e){}
+  }
+  async function guardar(){
+    try{ await window.storage.set(CLAVE, JSON.stringify(datos)); }
+    catch(e){ console.error("no se pudo guardar",e); }
+  }
+
+  /* ---------- mapa ---------- */
+  function iniciarMapa(){
+    mapa=L.map("mapa",{zoomControl:false}).setView([-33.8095,-59.5069],12);
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {maxZoom:19,attribution:"Imágenes Esri"}).addTo(mapa);
+    L.control.zoom({position:"topleft"}).addTo(mapa);
+    capaLotes=L.layerGroup().addTo(mapa);
+    capaDibujo=L.layerGroup().addTo(mapa);
+    mapa.on("click",function(e){ if(dibujando) agregarPunto(e.latlng); });
+  }
+
+  function pintarLotes(){
+    capaLotes.clearLayers(); capasPorLote={};
+    datos.lotes.forEach(function(l){
+      var trab = datos.trabajos.some(function(t){ return t.lote===l.id; });
+      var poly=L.polygon(l.puntos,{
+        color: trab?"#8fc07a":"#d7e5d0", weight:2, opacity: trab?1:.75,
+        fillColor: trab?"#40673b":"#d7e5d0", fillOpacity: trab?.45:.10
+      });
+      poly.on("click",function(e){ L.DomEvent.stopPropagation(e); abrirLote(l.id); });
+      poly.addTo(capaLotes); capasPorLote[l.id]=poly;
+      L.marker(centro(l.puntos),{interactive:false,icon:L.divIcon({className:"",
+        html:'<div class="lote-tag'+(trab?"":" virgen")+'">'+esc(l.nombre)+'</div>',iconSize:[0,0]})}).addTo(capaLotes);
+    });
+    if(datos.lotes.length && !loteAbierto){
+      var todos=[]; datos.lotes.forEach(function(l){ todos=todos.concat(l.puntos); });
+      try{ mapa.fitBounds(L.latLngBounds(todos).pad(.25)); }catch(e){}
+    }
+  }
+
+  /* ---------- dibujo ---------- */
+  function empezarDibujo(){
+    dibujando=true; puntosDibujo=[]; marcasDibujo=[]; capaDibujo.clearLayers();
+    document.getElementById("modo-dibujo").classList.add("on");
+    document.getElementById("flotantes").style.display="none";
+    textoDibujo();
+  }
+  function agregarPunto(ll){
+    puntosDibujo.push([ll.lat,ll.lng]);
+    marcasDibujo.push(L.circleMarker(ll,{radius:6,color:"#fff",weight:2,fillColor:"#40673b",fillOpacity:1}).addTo(capaDibujo));
+    linea(); textoDibujo();
+  }
+  function linea(){
+    if(lineaDibujo){ capaDibujo.removeLayer(lineaDibujo); lineaDibujo=null; }
+    if(puntosDibujo.length>=2)
+      lineaDibujo=L.polygon(puntosDibujo,{color:"#d7e5d0",weight:2,dashArray:"5,4",fillColor:"#40673b",fillOpacity:.3}).addTo(capaDibujo);
+  }
+  function textoDibujo(){
+    var el=document.getElementById("dibujo-txt");
+    if(!puntosDibujo.length) el.textContent="Tocá las esquinas del lote sobre el mapa.";
+    else if(puntosDibujo.length<3) el.textContent=puntosDibujo.length+" punto"+(puntosDibujo.length>1?"s":"")+". Faltan "+(3-puntosDibujo.length)+" para cerrar.";
+    else el.textContent=puntosDibujo.length+" puntos · "+nha(hectareas(puntosDibujo))+" ha";
+  }
+  function cancelarDibujo(){
+    dibujando=false; puntosDibujo=[]; capaDibujo.clearLayers(); lineaDibujo=null;
+    document.getElementById("modo-dibujo").classList.remove("on");
+    document.getElementById("flotantes").style.display="flex";
+  }
+  function cerrarLote(){
+    if(puntosDibujo.length<3){ document.getElementById("dibujo-txt").textContent="Un lote necesita al menos 3 esquinas."; return; }
+    var pts=puntosDibujo.slice(), ha=hectareas(pts);
+    cancelarDibujo(); formNuevoLote(pts,ha);
+  }
+
+  /* ---------- panel ---------- */
+  var panel=document.getElementById("panel"),
+      pTitulo=document.getElementById("p-titulo"),
+      pMeta=document.getElementById("p-meta"),
+      pCuerpo=document.getElementById("p-cuerpo"),
+      pCerrar=document.getElementById("p-cerrar");
+  function chico(v){ panel.classList.toggle("chico",!!v); panel.scrollTop=0; }
+
+  function vistaLotes(){
+    loteAbierto=null; pCerrar.style.display="none"; pTitulo.textContent="Lotes"; chico(true);
+    var haTot=0; datos.trabajos.forEach(function(t){ haTot+=haTrabajo(t); });
+    pMeta.textContent=datos.lotes.length+" lote"+(datos.lotes.length===1?"":"s")+" · "+nha(haTot)+" ha trabajadas";
+    document.getElementById("res-ha").textContent=nha(haTot)+" ha";
+
+    if(!datos.lotes.length){
+      pCuerpo.innerHTML='<div class="aviso">Todavía no hay ningún lote. Tocá <b>+ Lote</b>, movete en el mapa hasta el campo y marcá las esquinas.</div>'+
+        '<div class="vacio">Después le cargás cada trabajo con el registro de vuelos batería por batería, y de ahí sale el informe para el cliente.</div>';
+      return;
+    }
+    var html="";
+    datos.lotes.forEach(function(l){
+      var ts=datos.trabajos.filter(function(t){return t.lote===l.id;});
+      var mg=0,hh=0; ts.forEach(function(t){ mg+=margen(t); hh+=haTrabajo(t); });
+      html+='<div class="lote-item" data-lote="'+l.id+'">'+
+        '<div class="pip" style="background:'+(ts.length?"#8fc07a":"#4a5544")+'"></div>'+
+        '<div><div class="nom">'+esc(l.nombre)+'</div>'+
+        '<div class="est">'+esc(l.establecimiento||"Sin establecimiento")+' · '+nha(l.ha)+' ha</div></div>'+
+        '<div class="der">'+(ts.length
+          ?'<b class="num '+(mg>=0?"pos":"neg")+'">'+plata(hh>0?mg/hh:0)+'</b><span>margen/ha · '+ts.length+' trabajo'+(ts.length===1?"":"s")+'</span>'
+          :'<b class="num" style="color:#9aa593">—</b><span>sin trabajos</span>')+'</div></div>';
+    });
+    pCuerpo.innerHTML=html;
+    pCuerpo.querySelectorAll(".lote-item").forEach(function(el){
+      el.addEventListener("click",function(){ abrirLote(el.dataset.lote); });
+    });
+  }
+
+  function abrirLote(loteId){
+    var l=datos.lotes.find(function(x){return x.id===loteId;}); if(!l) return;
+    loteAbierto=loteId; chico(false); pCerrar.style.display="block"; pTitulo.textContent=l.nombre;
+
+    var ts=datos.trabajos.filter(function(t){return t.lote===loteId;})
+      .sort(function(a,b){ return (b.fecha||"").localeCompare(a.fecha||""); });
+    var mgT=0,haT=0,factT=0;
+    ts.forEach(function(t){ mgT+=margen(t); haT+=haTrabajo(t); factT+=n(t.facturado); });
+    pMeta.textContent=esc(l.establecimiento||"Sin establecimiento")+" · "+nha(l.ha)+" ha";
+
+    var poly=capasPorLote[loteId]; if(poly){ try{ mapa.fitBounds(poly.getBounds().pad(.4)); }catch(e){} }
+
+    var html="";
+    if(ts.length){
+      html+='<div class="tarjetas">'+
+        '<div><b class="num">'+nha(haT)+'</b><span>ha aplicadas</span></div>'+
+        '<div><b class="num">'+plata(factT)+'</b><span>facturado</span></div>'+
+        '<div><b class="num '+(mgT>=0?"pos":"neg")+'">'+plata(haT>0?mgT/haT:0)+'</b><span>margen por ha</span></div></div>';
+    }
+    html+='<button class="fab" id="btn-nuevo-trabajo" style="width:100%;margin-bottom:16px">+ Cargar trabajo</button>';
+
+    if(!ts.length){ html+='<div class="vacio">Este lote todavía no tiene trabajos cargados.</div>'; }
+    else ts.forEach(function(t){
+      var vs=vuelos(t), h=haTrabajo(t), m=minTrabajo(t), mg=margen(t);
+      var d1=[]; if(t.cultivo) d1.push(esc(t.cultivo));
+      if(t.producto) d1.push(esc(t.producto)+(t.dosis?" · "+esc(t.dosis):""));
+      var d2=[]; d2.push(nha(h)+" ha");
+      if(vs.length) d2.push(vs.length+" vuelos");
+      if(m) d2.push(tiempo(m));
+      if(caudalReal(t)) d2.push(n2(caudalReal(t))+" l/ha");
+      if(h&&m) d2.push(nha(h/(m/60))+" ha/h");
+
+      html+='<div class="trabajo">'+
+        '<div class="top"><span class="fecha num">'+fechaCorta(t.fecha)+'</span><span class="tipo">'+esc(t.tipo)+'</span></div>'+
+        '<div class="detalle">'+(d1.length?d1.join(" · ")+"<br>":"")+d2.join(" · ")+'</div>'+
+        '<div class="plata">'+
+          '<div><span>facturado</span><b class="num">'+plata(n(t.facturado))+'</b></div>'+
+          '<div><span>gastos</span><b class="num">'+plata(costoTotal(t))+'</b></div>'+
+          '<div><span>margen/ha</span><b class="num '+(mg>=0?"pos":"neg")+'">'+plata(margenHa(t))+'</b></div>'+
+        '</div>'+
+        '<div class="pie">'+
+          '<button class="mini" data-informe="'+t.id+'">Informe</button>'+
+          '<button class="mini" data-editar="'+t.id+'">Editar</button>'+
+          '<button class="mini roja" data-borrar="'+t.id+'">borrar</button>'+
+        '</div></div>';
+    });
+
+    html+='<div style="margin-top:8px;padding-top:12px;border-top:1px solid var(--linea)">'+
+      '<button class="mini roja" id="btn-borrar-lote">Borrar este lote</button></div>';
+    pCuerpo.innerHTML=html;
+
+    document.getElementById("btn-nuevo-trabajo").addEventListener("click",function(){ formTrabajo(loteId,null); });
+    pCuerpo.querySelectorAll("[data-informe]").forEach(function(b){
+      b.addEventListener("click",function(){ verInforme(b.dataset.informe); });
+    });
+    pCuerpo.querySelectorAll("[data-editar]").forEach(function(b){
+      b.addEventListener("click",function(){ formTrabajo(loteId,b.dataset.editar); });
+    });
+    pCuerpo.querySelectorAll("[data-borrar]").forEach(function(b){
+      b.addEventListener("click",async function(){
+        datos.trabajos=datos.trabajos.filter(function(t){return t.id!==b.dataset.borrar;});
+        await guardar(); pintarLotes(); abrirLote(loteId);
+      });
+    });
+    document.getElementById("btn-borrar-lote").addEventListener("click",async function(){
+      datos.lotes=datos.lotes.filter(function(x){return x.id!==loteId;});
+      datos.trabajos=datos.trabajos.filter(function(t){return t.lote!==loteId;});
+      await guardar(); pintarLotes(); vistaLotes();
+    });
+  }
+
+  /* ---------- form lote ---------- */
+  function formNuevoLote(pts,ha){
+    chico(false); pCerrar.style.display="block";
+    pTitulo.textContent="Nuevo lote"; pMeta.textContent=nha(ha)+" ha marcadas";
+    pCuerpo.innerHTML='<div class="form-grid">'+
+      '<div class="campo ancho"><label>Nombre del lote</label><input id="f-nombre" placeholder="Lote 4, La Costa, El Bajo…"></div>'+
+      '<div class="campo ancho"><label>Establecimiento o cliente</label><input id="f-est" placeholder="Ej. Alejandro Amil"></div></div>'+
+      '<div class="acciones"><button class="btn-cancelar" id="f-cancelar">Descartar</button>'+
+      '<button class="btn-guardar" id="f-guardar">Guardar lote</button></div>';
+    document.getElementById("f-cancelar").addEventListener("click",function(){ vistaLotes(); pintarLotes(); });
+    document.getElementById("f-guardar").addEventListener("click",async function(){
+      var nom=document.getElementById("f-nombre").value.trim();
+      if(!nom){ document.getElementById("f-nombre").focus(); return; }
+      var l={id:id(),nombre:nom,establecimiento:document.getElementById("f-est").value.trim(),puntos:pts,ha:ha};
+      datos.lotes.push(l); await guardar(); pintarLotes(); abrirLote(l.id);
+    });
+    document.getElementById("f-nombre").focus();
+  }
+
+  /* ---------- form trabajo ---------- */
+  function formTrabajo(loteId, trabajoId){
+    var l=datos.lotes.find(function(x){return x.id===loteId;});
+    var t = trabajoId ? datos.trabajos.find(function(x){return x.id===trabajoId;}) : null;
+    var listaVuelos = t && t.vuelos ? t.vuelos.map(function(v){return {bat:v.bat,ha:v.ha,min:v.min,litros:v.litros};}) : [];
+
+    chico(false); pCerrar.style.display="block";
+    pTitulo.textContent = t ? "Editar trabajo" : "Cargar trabajo";
+    pMeta.textContent=l.nombre;
+    var hoy=new Date().toISOString().slice(0,10);
+    var g=function(k,d){ return t && t[k]!=null && t[k]!=="" ? t[k] : (d==null?"":d); };
+
+    pCuerpo.innerHTML='<div class="form-grid">'+
+      '<div class="campo"><label>Fecha</label><input type="date" id="t-fecha" value="'+esc(g("fecha",hoy))+'"></div>'+
+      '<div class="campo"><label>Tipo</label><select id="t-tipo">'+
+        ["Pulverización","Siembra","Fertilización","Mapeo"].map(function(o){
+          return '<option'+(g("tipo")===o?" selected":"")+'>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<div class="campo"><label>Cultivo</label><input id="t-cultivo" value="'+esc(g("cultivo"))+'" placeholder="Soja, trigo, pastura…"></div>'+
+      '<div class="campo"><label>Superficie del lote</label><input type="number" inputmode="decimal" id="t-ha" value="'+esc(g("ha",Math.round(l.ha*10)/10))+'"></div>'+
+      '<div class="campo ancho"><label>Producto</label><input id="t-producto" value="'+esc(g("producto"))+'" placeholder="Togar Max + Rizospray Integrum"></div>'+
+      '<div class="campo"><label>Dosis</label><input id="t-dosis" value="'+esc(g("dosis"))+'" placeholder="1,2 l/ha"></div>'+
+      '<div class="campo"><label>Condiciones</label><input id="t-clima" value="'+esc(g("clima"))+'" placeholder="22°C, 8 km/h SE"></div>'+
+
+      '<div class="separador">Registro de vuelos</div>'+
+      '<div id="vuelos-caja">'+
+        '<div class="vuelos-encabezado"><div></div><div>batería</div><div>ha</div><div>min</div><div>litros</div><div></div></div>'+
+        '<div id="vuelos-lista"></div>'+
+        '<button class="mini" id="btn-add-vuelo" style="margin-top:6px;width:100%">+ Agregar vuelo</button>'+
+        '<div class="vuelos-total" id="vuelos-total"></div>'+
+      '</div>'+
+
+      '<div class="separador">Plata (esto no sale en el informe del cliente)</div>'+
+      '<div class="campo"><label>Facturado</label><input type="number" inputmode="decimal" id="t-facturado" value="'+esc(g("facturado"))+'" placeholder="0"></div>'+
+      '<div class="campo"><label>Químico</label><input type="number" inputmode="decimal" id="t-quimico" value="'+esc(g("g_quimico"))+'" placeholder="0"></div>'+
+      '<div class="campo"><label>Combustible</label><input type="number" inputmode="decimal" id="t-combustible" value="'+esc(g("g_combustible"))+'" placeholder="0"></div>'+
+      '<div class="campo"><label>Viáticos</label><input type="number" inputmode="decimal" id="t-viaticos" value="'+esc(g("g_viaticos"))+'" placeholder="0"></div>'+
+      '<div class="campo ancho"><label>Otros gastos</label><input type="number" inputmode="decimal" id="t-otros" value="'+esc(g("g_otros"))+'" placeholder="0"></div>'+
+
+      '<div id="preview">'+
+        '<div><span>gastos</span><b class="num" id="pv-costo">$0</b></div>'+
+        '<div><span>margen</span><b class="num" id="pv-margen">$0</b></div>'+
+        '<div><span>margen por ha</span><b class="num" id="pv-ha">$0</b></div>'+
+      '</div></div>'+
+      '<div class="acciones"><button class="btn-cancelar" id="t-cancelar">Cancelar</button>'+
+      '<button class="btn-guardar" id="t-guardar">Guardar trabajo</button></div>';
+
+    function pintarVuelos(){
+      var cont=document.getElementById("vuelos-lista"), h="";
+      listaVuelos.forEach(function(v,i){
+        h+='<div class="vuelo-fila">'+
+          '<div class="idx">'+(i+1)+'</div>'+
+          '<input data-v="bat" data-i="'+i+'" value="'+esc(v.bat==null?(i+1):v.bat)+'">'+
+          '<input data-v="ha" data-i="'+i+'" inputmode="decimal" value="'+esc(v.ha)+'" placeholder="ha">'+
+          '<input data-v="min" data-i="'+i+'" inputmode="decimal" value="'+esc(v.min)+'" placeholder="min">'+
+          '<input data-v="litros" data-i="'+i+'" inputmode="decimal" value="'+esc(v.litros)+'" placeholder="l">'+
+          '<button class="quitar" data-q="'+i+'">×</button></div>';
+      });
+      cont.innerHTML=h;
+      cont.querySelectorAll("input").forEach(function(el){
+        el.addEventListener("input",function(){
+          listaVuelos[+el.dataset.i][el.dataset.v]=el.value; totales(); refrescar();
+        });
+      });
+      cont.querySelectorAll("[data-q]").forEach(function(b){
+        b.addEventListener("click",function(){ listaVuelos.splice(+b.dataset.q,1); pintarVuelos(); totales(); refrescar(); });
+      });
+      totales();
+    }
+
+    function totales(){
+      var ha=0,mi=0,li=0;
+      listaVuelos.forEach(function(v){ ha+=n(v.ha); mi+=n(v.min); li+=n(v.litros); });
+      var el=document.getElementById("vuelos-total");
+      if(!listaVuelos.length){ el.innerHTML='<div style="color:#9aa593;font-size:12.5px">Sin vuelos cargados. Podés cargar el trabajo igual, pero el informe queda sin el detalle por batería.</div>'; return; }
+      el.innerHTML=
+        '<div><span>vuelos</span><b class="num">'+listaVuelos.length+'</b></div>'+
+        '<div><span>hectáreas</span><b class="num">'+nha(ha)+'</b></div>'+
+        '<div><span>tiempo</span><b class="num">'+tiempo(mi)+'</b></div>'+
+        '<div><span>caudal real</span><b class="num">'+(ha>0&&li>0?n2(li/ha)+" l/ha":"—")+'</b></div>'+
+        '<div><span>ha por batería</span><b class="num">'+nha(ha/listaVuelos.length)+'</b></div>';
+    }
+
+    function leer(){
+      var o={
+        fecha:document.getElementById("t-fecha").value,
+        tipo:document.getElementById("t-tipo").value,
+        cultivo:document.getElementById("t-cultivo").value.trim(),
+        ha:document.getElementById("t-ha").value,
+        producto:document.getElementById("t-producto").value.trim(),
+        dosis:document.getElementById("t-dosis").value.trim(),
+        clima:document.getElementById("t-clima").value.trim(),
+        facturado:document.getElementById("t-facturado").value,
+        g_quimico:document.getElementById("t-quimico").value,
+        g_combustible:document.getElementById("t-combustible").value,
+        g_viaticos:document.getElementById("t-viaticos").value,
+        g_otros:document.getElementById("t-otros").value,
+        vuelos:listaVuelos
+      };
+      return o;
+    }
+    function refrescar(){
+      var o=leer(), c=costoTotal(o), m=margen(o), mh=margenHa(o);
+      document.getElementById("pv-costo").textContent=plata(c);
+      var em=document.getElementById("pv-margen"); em.textContent=plata(m); em.className="num "+(m>=0?"pos":"neg");
+      var eh=document.getElementById("pv-ha"); eh.textContent=plata(mh); eh.className="num "+(mh>=0?"pos":"neg");
+    }
+
+    document.getElementById("btn-add-vuelo").addEventListener("click",function(){
+      listaVuelos.push({bat:listaVuelos.length+1,ha:"",min:"",litros:""}); pintarVuelos();
+    });
+    pCuerpo.querySelectorAll(".form-grid > .campo input, .form-grid > .campo select").forEach(function(el){
+      el.addEventListener("input",refrescar);
+    });
+    pintarVuelos(); refrescar();
+
+    document.getElementById("t-cancelar").addEventListener("click",function(){ abrirLote(loteId); });
+    document.getElementById("t-guardar").addEventListener("click",async function(){
+      var o=leer();
+      if(t){ Object.keys(o).forEach(function(k){ t[k]=o[k]; }); }
+      else { o.id=id(); o.lote=loteId; datos.trabajos.push(o); }
+      await guardar(); pintarLotes(); abrirLote(loteId);
+    });
+  }
+
+  /* ---------- informe ---------- */
+  function svgLote(pts){
+    var lat0=centro(pts)[0], k=Math.cos(lat0*Math.PI/180);
+    var xs=pts.map(function(p){ return p[1]*k; }), ys=pts.map(function(p){ return -p[0]; });
+    var x0=Math.min.apply(null,xs), x1=Math.max.apply(null,xs);
+    var y0=Math.min.apply(null,ys), y1=Math.max.apply(null,ys);
+    var w=x1-x0||1, h=y1-y0||1, esc2=100/Math.max(w,h);
+    var ox=(100-w*esc2)/2, oy=(100-h*esc2)/2;
+    var d=pts.map(function(p,i){
+      var x=((p[1]*k)-x0)*esc2+ox, y=((-p[0])-y0)*esc2+oy;
+      return (i?"L":"M")+x.toFixed(2)+" "+y.toFixed(2);
+    }).join(" ")+" Z";
+    return '<svg viewBox="-4 -4 108 108" width="120" height="120" xmlns="http://www.w3.org/2000/svg">'+
+      '<path d="'+d+'" fill="#d7e5d0" stroke="#40673b" stroke-width="2" stroke-linejoin="round"/></svg>';
+  }
+
+  function armarInforme(t){
+    var l=datos.lotes.find(function(x){return x.id===t.lote;})||{};
+    var vs=vuelos(t), ha=haTrabajo(t), mi=minTrabajo(t), li=litrosTrabajo(t), cr=caudalReal(t);
+
+    var filas=vs.map(function(v,i){
+      return '<tr><td class="c">'+(i+1)+'</td><td class="c">'+esc(v.bat==null?(i+1):v.bat)+'</td>'+
+        '<td class="d">'+nha(n(v.ha))+'</td><td class="d">'+n2(n(v.min))+'</td>'+
+        '<td class="d">'+(n(v.litros)?n2(n(v.litros)):"—")+'</td>'+
+        '<td class="d">'+(n(v.min)>0?nha(n(v.ha)/(n(v.min)/60)):"—")+'</td></tr>';
+    }).join("");
+
+    var dato=function(et,va){ return va ? '<div class="dato"><span>'+et+'</span><b>'+va+'</b></div>' : ""; };
+
+    return '<!doctype html><html lang="es"><head><meta charset="utf-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>Informe '+esc(l.nombre)+' '+esc(fechaCorta(t.fecha))+'</title><style>'+
+    '@page{size:A4;margin:16mm}'+
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#20261c;background:#fff;margin:0;padding:26px 22px;line-height:1.45;font-size:14px;max-width:760px}'+
+    '.cab{display:flex;align-items:flex-start;gap:16px;border-bottom:3px solid #40673b;padding-bottom:14px;margin-bottom:20px}'+
+    '.marca{font-size:22px;font-weight:700;color:#40673b;letter-spacing:-.02em;line-height:1.1}'+
+    '.marca small{display:block;font-size:11.5px;font-weight:500;color:#6b7a63;letter-spacing:.02em;margin-top:3px}'+
+    '.cab .der{margin-left:auto;text-align:right;font-size:12px;color:#6b7a63}'+
+    '.cab .der b{display:block;font-size:15px;color:#20261c}'+
+    'h2{font-size:12px;color:#40673b;margin:24px 0 10px;font-weight:700;border-bottom:1px solid #d7e5d0;padding-bottom:5px}'+
+    '.ident{display:flex;gap:18px;align-items:center;background:#f4f7f2;border-radius:6px;padding:14px 16px}'+
+    '.ident .txt{flex:1}'+
+    '.ident .txt h1{font-size:20px;margin:0 0 3px;letter-spacing:-.02em}'+
+    '.ident .txt p{margin:0;color:#6b7a63;font-size:13px}'+
+    '.datos{display:flex;flex-wrap:wrap;gap:20px 28px}'+
+    '.dato span{display:block;font-size:11px;color:#6b7a63;margin-bottom:1px}'+
+    '.dato b{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}'+
+    'table{width:100%;border-collapse:collapse;margin-top:4px;font-size:13px}'+
+    'th{text-align:right;font-size:10.5px;color:#6b7a63;font-weight:600;border-bottom:1px solid #40673b;padding:0 7px 5px}'+
+    'th:first-child,th:nth-child(2){text-align:center}'+
+    'td{padding:6px 7px;border-bottom:1px solid #e6ebe3;font-variant-numeric:tabular-nums}'+
+    'td.c{text-align:center;color:#6b7a63}td.d{text-align:right}'+
+    'tfoot td{font-weight:700;border-top:2px solid #40673b;border-bottom:none;background:#f4f7f2}'+
+    '.pie{margin-top:26px;padding-top:12px;border-top:1px solid #d7e5d0;font-size:11px;color:#8a9682}'+
+    '.imprimir{background:#40673b;color:#fff;border:none;border-radius:5px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:18px;font-family:inherit}'+
+    '@media print{.imprimir{display:none}body{padding:0}}'+
+    '</style></head><body>'+
+    '<button class="imprimir" onclick="window.print()">Imprimir o guardar en PDF</button>'+
+    '<div class="cab"><div class="marca">Cóndor Agro<small>Aplicaciones aéreas de precisión · Baradero, Bs. As.</small></div>'+
+      '<div class="der"><b>Informe de aplicación</b>'+esc(fechaLarga(t.fecha))+'</div></div>'+
+
+    '<div class="ident">'+svgLote(l.puntos||[])+
+      '<div class="txt"><h1>'+esc(l.nombre)+'</h1>'+
+      '<p>'+esc(l.establecimiento||"")+(l.ha?' · superficie del lote '+nha(l.ha)+' ha':'')+'</p></div></div>'+
+
+    '<h2>Trabajo realizado</h2><div class="datos">'+
+      dato("Tipo",esc(t.tipo))+
+      dato("Cultivo",esc(t.cultivo))+
+      dato("Superficie aplicada",nha(ha)+" ha")+
+      dato("Producto",esc(t.producto))+
+      dato("Dosis",esc(t.dosis))+
+      dato("Caudal aplicado",cr?n2(cr)+" l/ha":"")+
+      dato("Caldo total",li?n2(li)+" litros":"")+
+      dato("Condiciones",esc(t.clima))+
+    '</div>'+
+
+    '<h2>Operación</h2><div class="datos">'+
+      dato("Vuelos",vs.length||"")+
+      dato("Baterías",vs.length||"")+
+      dato("Tiempo total de vuelo",mi?tiempo(mi):"")+
+      dato("Rendimiento",(ha&&mi)?nha(ha/(mi/60))+" ha/h":"")+
+      dato("Promedio por batería",vs.length?nha(ha/vs.length)+" ha":"")+
+      dato("Equipo","DJI Agras T100")+
+    '</div>'+
+
+    (vs.length?'<h2>Registro de vuelos</h2><table><thead><tr>'+
+      '<th>#</th><th>Batería</th><th>Hectáreas</th><th>Minutos</th><th>Litros</th><th>ha/h</th></tr></thead>'+
+      '<tbody>'+filas+'</tbody><tfoot><tr><td class="c" colspan="2">Total</td>'+
+      '<td class="d">'+nha(ha)+'</td><td class="d">'+n2(mi)+'</td>'+
+      '<td class="d">'+(li?n2(li):"—")+'</td><td class="d">'+(mi>0?nha(ha/(mi/60)):"—")+'</td></tr></tfoot></table>':"")+
+
+    '<div class="pie">Informe generado por Cóndor Agro. Los datos de vuelo corresponden al registro del equipo en la fecha indicada.</div>'+
+    '</body></html>';
+  }
+
+  function verInforme(trabajoId){
+    var t=datos.trabajos.find(function(x){return x.id===trabajoId;}); if(!t) return;
+    var l=datos.lotes.find(function(x){return x.id===t.lote;})||{};
+    informeActual.html=armarInforme(t);
+    informeActual.nombre="informe-"+String(l.nombre||"lote").toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-"+(t.fecha||"")+".html";
+    document.getElementById("v-frame").srcdoc=informeActual.html;
+    document.getElementById("visor").classList.add("on");
+  }
+
+  document.getElementById("v-cerrar").addEventListener("click",function(){
+    document.getElementById("visor").classList.remove("on");
+  });
+  document.getElementById("v-descargar").addEventListener("click",function(){
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([informeActual.html],{type:"text/html;charset=utf-8"}));
+    a.download=informeActual.nombre; a.click();
+  });
+
+  /* ---------- resumen ---------- */
+  function vistaResumen(){
+    loteAbierto=null; chico(false); pCerrar.style.display="block"; pTitulo.textContent="Números";
+    var ts=datos.trabajos;
+    if(!ts.length){
+      pMeta.textContent="sin datos todavía";
+      pCuerpo.innerHTML='<div class="vacio">Cargá algunos trabajos y acá te aparece cuánto te deja cada uno por hectárea, y cuáles te conviene repetir.</div>';
+      return;
+    }
+    var haT=0,factT=0,gastoT=0,batT=0,minT=0;
+    ts.forEach(function(t){
+      haT+=haTrabajo(t); factT+=n(t.facturado); gastoT+=costoTotal(t);
+      batT+=vuelos(t).length; minT+=minTrabajo(t);
+    });
+    var mgT=factT-gastoT;
+    pMeta.textContent=ts.length+" trabajos cargados";
+
+    var html='<div class="tarjetas">'+
+      '<div><b class="num">'+nha(haT)+'</b><span>hectáreas</span></div>'+
+      '<div><b class="num">'+plata(factT)+'</b><span>facturado</span></div>'+
+      '<div><b class="num '+(mgT>=0?"pos":"neg")+'">'+plata(mgT)+'</b><span>margen</span></div>'+
+      '<div><b class="num '+(mgT>=0?"pos":"neg")+'">'+plata(haT>0?mgT/haT:0)+'</b><span>margen por ha</span></div></div>'+
+      '<div class="tarjetas" style="margin-bottom:20px">'+
+      '<div><b class="num">'+(batT>0?nha(haT/batT):"—")+'</b><span>ha por batería</span></div>'+
+      '<div><b class="num">'+(minT>0?nha(haT/(minT/60)):"—")+'</b><span>ha por hora de vuelo</span></div>'+
+      '<div><b class="num">'+batT+'</b><span>vuelos registrados</span></div></div>';
+
+    var lista=ts.map(function(t){
+      var l=datos.lotes.find(function(x){return x.id===t.lote;});
+      return {nom:(l?l.nombre:"?")+" · "+fechaCorta(t.fecha), v:margenHa(t)};
+    }).sort(function(a,b){return b.v-a.v;});
+    var max=Math.max.apply(null,lista.map(function(x){return Math.abs(x.v);}))||1;
+
+    html+='<div class="rank"><h3>Margen por hectárea, trabajo por trabajo</h3>';
+    lista.forEach(function(x){
+      html+='<div class="rank-fila"><div style="flex:1;min-width:0">'+
+        '<div class="r-nom">'+esc(x.nom)+'</div>'+
+        '<div class="barra-mini" style="width:'+Math.max(2,Math.abs(x.v)/max*100)+'%;background:'+(x.v>=0?"#8fc07a":"#e0705e")+'"></div></div>'+
+        '<div class="r-val num '+(x.v>=0?"pos":"neg")+'">'+plata(x.v)+'</div></div>';
+    });
+    html+='</div><div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--linea)">'+
+      '<button class="fab sec" id="btn-exportar" style="width:100%">Descargar todo en CSV</button></div>';
+    pCuerpo.innerHTML=html;
+
+    document.getElementById("btn-exportar").addEventListener("click",function(){
+      var f=[["fecha","lote","establecimiento","tipo","cultivo","ha","producto","dosis","caudal_real","vuelos","minutos","litros","facturado","quimico","combustible","viaticos","otros","margen","margen_ha"]];
+      datos.trabajos.forEach(function(t){
+        var l=datos.lotes.find(function(x){return x.id===t.lote;})||{};
+        f.push([t.fecha,l.nombre||"",l.establecimiento||"",t.tipo,t.cultivo,nha(haTrabajo(t)),t.producto,t.dosis,
+          n2(caudalReal(t)),vuelos(t).length,minTrabajo(t),litrosTrabajo(t),t.facturado,t.g_quimico,t.g_combustible,
+          t.g_viaticos,t.g_otros,margen(t),Math.round(margenHa(t))]);
+      });
+      var csv=f.map(function(r){return r.map(function(c){return '"'+String(c==null?"":c).replace(/"/g,'""')+'"';}).join(",");}).join("\n");
+      var a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));
+      a.download="condor-trabajos.csv"; a.click();
+    });
+  }
+
+  /* ---------- eventos ---------- */
+  document.getElementById("btn-nuevo").addEventListener("click",empezarDibujo);
+  document.getElementById("btn-cancelar-dibujo").addEventListener("click",cancelarDibujo);
+  document.getElementById("btn-cerrar-lote").addEventListener("click",cerrarLote);
+  document.getElementById("btn-resumen").addEventListener("click",vistaResumen);
+  document.getElementById("p-cerrar").addEventListener("click",function(){ vistaLotes(); pintarLotes(); });
+  document.getElementById("btn-deshacer").addEventListener("click",function(){
+    if(!puntosDibujo.length) return;
+    puntosDibujo.pop();
+    var m=marcasDibujo.pop(); if(m) capaDibujo.removeLayer(m);
+    linea(); textoDibujo();
+  });
+
+  (async function(){
+    iniciarMapa(); await cargar(); pintarLotes(); vistaLotes();
+    setTimeout(function(){ mapa.invalidateSize(); },200);
+  })();
+})();
+</script>
