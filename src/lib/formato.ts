@@ -6,6 +6,16 @@ export function num(v: unknown): number {
   return Number.isFinite(x) ? x : 0
 }
 
+/**
+ * Extrae el número inicial de un texto: '10 l/ha' -> '10', '6' -> '6', '' -> ''.
+ * Sirve para limpiar dosis viejas (que eran texto libre) al mostrarlas o
+ * editarlas. Conserva la coma decimal.
+ */
+export function numeroTexto(s: unknown): string {
+  const m = String(s ?? '').trim().match(/-?\d+(?:[.,]\d+)?/)
+  return m ? m[0] : ''
+}
+
 /** Escapa texto para meterlo dentro de un string HTML (informe, SVG). */
 export function esc(s: unknown): string {
   return String(s ?? '').replace(/[&<>"]/g, (c) => {

@@ -11,7 +11,8 @@ import {
   minTrabajo,
   vuelosValidos,
 } from '../lib/calculos'
-import { fechaCorta, n2, nha, num, plata } from '../lib/formato'
+import { fechaCorta, n2, nha, num, numeroTexto, plata } from '../lib/formato'
+import { unidadesDe } from '../lib/unidades'
 
 function BloqueDatos({
   onExportar,
@@ -113,17 +114,23 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
     const filas: (string | number)[][] = [
       [
         'fecha', 'lote', 'establecimiento', 'tipo', 'cultivo', 'ha', 'producto',
-        'dosis', 'caudal_real', 'vuelos', 'minutos', 'litros', 'facturado',
+        'dosis', 'dosis_unidad', 'caudal_real', 'cantidad', 'cantidad_unidad',
+        'vuelos', 'minutos', 'facturado',
         'quimico', 'combustible', 'viaticos', 'otros', 'margen', 'margen_ha',
       ],
     ]
     trabajos.forEach((t) => {
       const l = lotes.find((x) => x.id === t.loteId)
       const g = t.gastos
+      const u = unidadesDe(t.tipo)
+      const dosisN = numeroTexto(t.dosis)
       filas.push([
         t.fecha, l?.nombre ?? '', l?.establecimiento ?? '', t.tipo, t.cultivo,
-        nha(haTrabajo(t)), t.producto, t.dosis, n2(caudalReal(t)),
-        vuelosValidos(t).length, minTrabajo(t), litrosTrabajo(t), t.facturado,
+        nha(haTrabajo(t)), u.producto ? t.producto : '',
+        u.dosis && dosisN ? n2(num(dosisN)) : '', u.dosis ? u.dosisUnidad : '',
+        u.caudal ? n2(caudalReal(t)) : '',
+        u.insumo ? n2(litrosTrabajo(t)) : '', u.insumo ? u.insumoColumna : '',
+        vuelosValidos(t).length, minTrabajo(t), t.facturado,
         g.quimico, g.combustible, g.viaticos, g.otros,
         Math.round(num(t.facturado) - costoTotal(t)), Math.round(margenHa(t)),
       ])

@@ -1,15 +1,20 @@
 /** Tabla de vuelos batería por batería, dentro del formulario de trabajo. */
 
 import type { Vuelo } from '../tipos'
+import type { UnidadesTrabajo } from '../lib/unidades'
 import { n2, nha, num, tiempo } from '../lib/formato'
 
 export function RegistroVuelos({
   vuelos,
+  unidades,
   onChange,
 }: {
   vuelos: Vuelo[]
+  unidades: UnidadesTrabajo
   onChange: (v: Vuelo[]) => void
 }) {
+  const conInsumo = unidades.insumo
+
   function set(i: number, campo: keyof Vuelo, valor: string) {
     const copia = vuelos.slice()
     copia[i] = { ...copia[i], [campo]: valor }
@@ -29,20 +34,22 @@ export function RegistroVuelos({
   const mi = vuelos.reduce((s, v) => s + num(v.min), 0)
   const li = vuelos.reduce((s, v) => s + num(v.litros), 0)
 
+  const clase = conInsumo ? '' : ' sin-insumo'
+
   return (
     <div id="vuelos-caja">
-      <div className="vuelos-encabezado">
+      <div className={'vuelos-encabezado' + clase}>
         <div />
         <div>batería</div>
         <div>ha</div>
         <div>min</div>
-        <div>litros</div>
+        {conInsumo && <div>{unidades.insumoColumna}</div>}
         <div />
       </div>
 
       <div id="vuelos-lista">
         {vuelos.map((v, i) => (
-          <div className="vuelo-fila" key={i}>
+          <div className={'vuelo-fila' + clase} key={i}>
             <div className="idx">{i + 1}</div>
             <input
               value={v.bateria}
@@ -60,12 +67,14 @@ export function RegistroVuelos({
               value={v.min}
               onChange={(e) => set(i, 'min', e.target.value)}
             />
-            <input
-              inputMode="decimal"
-              placeholder="l"
-              value={v.litros}
-              onChange={(e) => set(i, 'litros', e.target.value)}
-            />
+            {conInsumo && (
+              <input
+                inputMode="decimal"
+                placeholder={unidades.insumoColumna}
+                value={v.litros}
+                onChange={(e) => set(i, 'litros', e.target.value)}
+              />
+            )}
             <button
               className="quitar"
               onClick={() => quitar(i)}
@@ -105,12 +114,20 @@ export function RegistroVuelos({
               <span>tiempo</span>
               <b className="num">{tiempo(mi)}</b>
             </div>
-            <div>
-              <span>caudal real</span>
-              <b className="num">
-                {ha > 0 && li > 0 ? n2(li / ha) + ' l/ha' : '—'}
-              </b>
-            </div>
+            {conInsumo && (
+              <div>
+                <span>{unidades.insumoTotal}</span>
+                <b className="num">{li > 0 ? n2(li) : '—'}</b>
+              </div>
+            )}
+            {unidades.caudal && (
+              <div>
+                <span>caudal real</span>
+                <b className="num">
+                  {ha > 0 && li > 0 ? n2(li / ha) + ' ' + unidades.caudalUnidad : '—'}
+                </b>
+              </div>
+            )}
             <div>
               <span>ha por batería</span>
               <b className="num">{nha(ha / vuelos.length)}</b>

@@ -10,7 +10,8 @@ import {
   minTrabajo,
   vuelosValidos,
 } from '../lib/calculos'
-import { fechaCorta, n2, nha, num, plata, tiempo } from '../lib/formato'
+import { fechaCorta, n2, nha, num, numeroTexto, plata, tiempo } from '../lib/formato'
+import { unidadesDe } from '../lib/unidades'
 
 export function DetalleLote({
   loteId,
@@ -101,20 +102,29 @@ export function DetalleLote({
           </div>
         ) : (
           ts.map((t) => {
+            const u = unidadesDe(t.tipo)
             const vs = vuelosValidos(t)
             const h = haTrabajo(t)
             const m = minTrabajo(t)
             const mg = margen(t)
             const cr = caudalReal(t)
+            const dosisN = numeroTexto(t.dosis)
 
             const d1: string[] = []
             if (t.cultivo) d1.push(t.cultivo)
-            if (t.producto) d1.push(t.producto + (t.dosis ? ' · ' + t.dosis : ''))
+            if (u.producto && t.producto) {
+              d1.push(
+                t.producto +
+                  (u.dosis && dosisN
+                    ? ' · ' + n2(num(dosisN)) + ' ' + u.dosisUnidad
+                    : ''),
+              )
+            }
 
             const d2: string[] = [nha(h) + ' ha']
             if (vs.length) d2.push(vs.length + ' vuelos')
             if (m) d2.push(tiempo(m))
-            if (cr) d2.push(n2(cr) + ' l/ha')
+            if (u.caudal && cr) d2.push(n2(cr) + ' ' + u.caudalUnidad)
             if (h && m) d2.push(nha(h / (m / 60)) + ' ha/h')
 
             return (

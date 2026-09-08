@@ -19,6 +19,7 @@ export interface Vuelo {
   bateria: string
   ha: string
   min: string
+  /** Cantidad aplicada en el vuelo. Litros o kg según el tipo (ver lib/unidades). */
   litros: string
 }
 
@@ -48,13 +49,14 @@ export interface Trabajo {
   tipo: TipoTrabajo
   cultivo: string
   producto: string
+  /** Dosis como número (texto). La unidad (l/ha o kg/ha) sale del tipo. */
   dosis: string
   condiciones: string
   /** Superficie aplicada, en ha. Se usa si no hay detalle de vuelos. */
   ha: string
   /** Minutos totales de vuelo. Se usa si no hay detalle de vuelos. */
   minutos: string
-  /** Litros totales de caldo. Se usa si no hay detalle de vuelos. */
+  /** Cantidad total aplicada (litros o kg según tipo). Se usa si no hay detalle. */
   litros: string
   vuelos: Vuelo[]
   gastos: Gastos

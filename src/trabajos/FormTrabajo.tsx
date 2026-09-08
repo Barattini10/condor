@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react'
 import { useBitacora, type DatosTrabajo } from '../datos/bitacora-context'
 import type { Gastos, TipoTrabajo, Trabajo, Vuelo } from '../tipos'
 import { costoTotal, margen, margenHa } from '../lib/calculos'
-import { hoyISO, plata } from '../lib/formato'
+import { hoyISO, numeroTexto, plata } from '../lib/formato'
+import { unidadesDe } from '../lib/unidades'
 import { RegistroVuelos } from './RegistroVuelos'
 
 const TIPOS: TipoTrabajo[] = [
@@ -25,7 +26,7 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
       tipo: previo.tipo,
       cultivo: previo.cultivo,
       producto: previo.producto,
-      dosis: previo.dosis,
+      dosis: numeroTexto(previo.dosis),
       condiciones: previo.condiciones,
       ha: previo.ha,
       minutos: previo.minutos,
@@ -69,6 +70,8 @@ export function FormTrabajo({
   )
   const [guardando, setGuardando] = useState(false)
 
+  const u = unidadesDe(d.tipo)
+
   function set<K extends keyof DatosTrabajo>(campo: K, valor: DatosTrabajo[K]) {
     setD((prev) => ({ ...prev, [campo]: valor }))
   }
@@ -93,7 +96,14 @@ export function FormTrabajo({
   async function guardar() {
     if (guardando) return
     setGuardando(true)
-    await guardarTrabajo(loteId, trabajoId, d)
+    // Guardar la dosis limpia y no arrastrar campos que este tipo no usa.
+    const limpio: DatosTrabajo = {
+      ...d,
+      producto: u.producto ? d.producto : '',
+      dosis: u.dosis ? numeroTexto(d.dosis) : '',
+      litros: u.insumo ? d.litros : '',
+    }
+    await guardarTrabajo(loteId, trabajoId, limpio)
     onCerrar()
   }
 
@@ -152,24 +162,32 @@ export function FormTrabajo({
               onChange={(e) => set('ha', e.target.value)}
             />
           </div>
-          <div className="campo ancho">
-            <label htmlFor="t-producto">Producto</label>
-            <input
-              id="t-producto"
-              value={d.producto}
-              onChange={(e) => set('producto', e.target.value)}
-              placeholder="Togar Max + Rizospray Integrum"
-            />
-          </div>
-          <div className="campo">
-            <label htmlFor="t-dosis">Dosis</label>
-            <input
-              id="t-dosis"
-              value={d.dosis}
-              onChange={(e) => set('dosis', e.target.value)}
-              placeholder="1,2 l/ha"
-            />
-          </div>
+          {u.producto && (
+            <div className="campo ancho">
+              <label htmlFor="t-producto">Producto</label>
+              <input
+                id="t-producto"
+                value={d.producto}
+                onChange={(e) => set('producto', e.target.value)}
+                placeholder="Togar Max + Rizospray Integrum"
+              />
+            </div>
+          )}
+          {u.dosis && (
+            <div className="campo">
+              <label htmlFor="t-dosis">Dosis</label>
+              <div className="con-unidad">
+                <input
+                  id="t-dosis"
+                  inputMode="decimal"
+                  value={d.dosis}
+                  onChange={(e) => set('dosis', e.target.value)}
+                  placeholder="0"
+                />
+                <span>{u.dosisUnidad}</span>
+              </div>
+            </div>
+          )}
           <div className="campo">
             <label htmlFor="t-clima">Condiciones</label>
             <input
@@ -181,7 +199,7 @@ export function FormTrabajo({
           </div>
 
           <div className="separador">Registro de vuelos</div>
-          <RegistroVuelos vuelos={d.vuelos} onChange={setVuelos} />
+          <RegistroVuelos vuelos={d.vuelos} unidades={u} onChange={setVuelos} />
 
           {d.vuelos.length === 0 && (
             <>
@@ -196,16 +214,18 @@ export function FormTrabajo({
                   placeholder="0"
                 />
               </div>
-              <div className="campo">
-                <label htmlFor="t-lt">Litros de caldo</label>
-                <input
-                  id="t-lt"
-                  inputMode="decimal"
-                  value={d.litros}
-                  onChange={(e) => set('litros', e.target.value)}
-                  placeholder="0"
-                />
-              </div>
+              {u.insumo && (
+                <div className="campo">
+                  <label htmlFor="t-lt">{u.insumoManualLabel}</label>
+                  <input
+                    id="t-lt"
+                    inputMode="decimal"
+                    value={d.litros}
+                    onChange={(e) => set('litros', e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              )}
             </>
           )}
 

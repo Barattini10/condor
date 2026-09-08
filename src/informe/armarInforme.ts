@@ -6,7 +6,16 @@
 
 import type { Lote, PuntoLatLng, Trabajo } from '../tipos'
 import { centro } from '../lib/geo'
-import { esc, fechaCorta, fechaLarga, n2, nha, num, tiempo } from '../lib/formato'
+import {
+  esc,
+  fechaCorta,
+  fechaLarga,
+  n2,
+  nha,
+  num,
+  numeroTexto,
+  tiempo,
+} from '../lib/formato'
 import {
   caudalReal,
   haTrabajo,
@@ -14,6 +23,7 @@ import {
   minTrabajo,
   vuelosValidos,
 } from '../lib/calculos'
+import { unidadesDe } from '../lib/unidades'
 
 const EQUIPO = 'DJI Agras T100'
 
@@ -53,11 +63,15 @@ export interface Informe {
 }
 
 export function armarInforme(t: Trabajo, lote: Lote): Informe {
+  const u = unidadesDe(t.tipo)
   const vs = vuelosValidos(t)
   const ha = haTrabajo(t)
   const mi = minTrabajo(t)
   const li = litrosTrabajo(t)
   const cr = caudalReal(t)
+  const dosisN = numeroTexto(t.dosis)
+  const insumoTh =
+    u.insumoColumna.charAt(0).toUpperCase() + u.insumoColumna.slice(1)
 
   const filas = vs
     .map((v, i) => {
@@ -67,7 +81,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
       return (
         `<tr><td class="c">${i + 1}</td><td class="c">${esc(v.bateria || i + 1)}</td>` +
         `<td class="d">${nha(vha)}</td><td class="d">${n2(vmin)}</td>` +
-        `<td class="d">${vli ? n2(vli) : '—'}</td>` +
+        (u.insumo ? `<td class="d">${vli ? n2(vli) : '—'}</td>` : '') +
         `<td class="d">${vmin > 0 ? nha(vha / (vmin / 60)) : '—'}</td></tr>`
       )
     })
@@ -117,10 +131,13 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     dato('Tipo', esc(t.tipo)) +
     dato('Cultivo', esc(t.cultivo)) +
     dato('Superficie aplicada', `${nha(ha)} ha`) +
-    dato('Producto', esc(t.producto)) +
-    dato('Dosis', esc(t.dosis)) +
-    dato('Caudal aplicado', cr ? `${n2(cr)} l/ha` : '') +
-    dato('Caldo total', li ? `${n2(li)} litros` : '') +
+    dato('Producto', u.producto ? esc(t.producto) : '') +
+    dato('Dosis', u.dosis && dosisN ? `${n2(num(dosisN))} ${u.dosisUnidad}` : '') +
+    dato('Caudal aplicado', u.caudal && cr ? `${n2(cr)} ${u.caudalUnidad}` : '') +
+    dato(
+      u.insumoColumna === 'kg' ? 'Total aplicado' : 'Caldo total',
+      u.insumo && li ? `${n2(li)} ${u.insumoColumna}` : '',
+    ) +
     dato('Condiciones', esc(t.condiciones)) +
     '</div>' +
     '<h2>Operación</h2><div class="datos">' +
@@ -133,12 +150,13 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     '</div>' +
     (vs.length
       ? '<h2>Registro de vuelos</h2><table><thead><tr>' +
-        '<th>#</th><th>Batería</th><th>Hectáreas</th><th>Minutos</th><th>Litros</th><th>ha/h</th></tr></thead>' +
+        '<th>#</th><th>Batería</th><th>Hectáreas</th><th>Minutos</th>' +
+        (u.insumo ? `<th>${insumoTh}</th>` : '') +
+        '<th>ha/h</th></tr></thead>' +
         `<tbody>${filas}</tbody><tfoot><tr><td class="c" colspan="2">Total</td>` +
         `<td class="d">${nha(ha)}</td><td class="d">${n2(mi)}</td>` +
-        `<td class="d">${li ? n2(li) : '—'}</td><td class="d">${
-          mi > 0 ? nha(ha / (mi / 60)) : '—'
-        }</td></tr></tfoot></table>`
+        (u.insumo ? `<td class="d">${li ? n2(li) : '—'}</td>` : '') +
+        `<td class="d">${mi > 0 ? nha(ha / (mi / 60)) : '—'}</td></tr></tfoot></table>`
       : '') +
     '<div class="pie">Informe generado por Cóndor Agro. Los datos de vuelo corresponden al registro del equipo en la fecha indicada.</div>' +
     '</body></html>'
