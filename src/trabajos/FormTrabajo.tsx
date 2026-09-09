@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useBitacora, type DatosTrabajo } from '../datos/bitacora-context'
 import type { Gastos, TipoTrabajo, Trabajo, Vuelo } from '../tipos'
 import { costoTotal, margen, margenHa } from '../lib/calculos'
-import { hoyISO, numeroTexto, plata } from '../lib/formato'
+import { hoyISO, num, numeroTexto, plata } from '../lib/formato'
 import { unidadesDe } from '../lib/unidades'
 import { RegistroVuelos } from './RegistroVuelos'
 
@@ -14,6 +14,10 @@ const TIPOS: TipoTrabajo[] = [
   'Fertilización',
   'Mapeo',
 ]
+
+const EQUIPOS = ['DJI Agras T100', 'Mavic 3M']
+const EQUIPO_POR_DEFECTO = EQUIPOS[0]
+const BATERIAS_POR_DEFECTO = '3'
 
 function gastosVacios(): Gastos {
   return { quimico: '', combustible: '', viaticos: '', otros: '' }
@@ -25,9 +29,11 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
       fecha: previo.fecha,
       tipo: previo.tipo,
       cultivo: previo.cultivo,
+      equipo: previo.equipo || EQUIPO_POR_DEFECTO,
       producto: previo.producto,
       dosis: numeroTexto(previo.dosis),
       condiciones: previo.condiciones,
+      baterias: previo.baterias || BATERIAS_POR_DEFECTO,
       ha: previo.ha,
       minutos: previo.minutos,
       litros: previo.litros,
@@ -40,9 +46,11 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
     fecha: hoyISO(),
     tipo: 'Pulverización',
     cultivo: '',
+    equipo: EQUIPO_POR_DEFECTO,
     producto: '',
     dosis: '',
     condiciones: '',
+    baterias: BATERIAS_POR_DEFECTO,
     ha: String(Math.round(lote.ha * 10) / 10),
     minutos: '',
     litros: '',
@@ -71,6 +79,7 @@ export function FormTrabajo({
   const [guardando, setGuardando] = useState(false)
 
   const u = unidadesDe(d.tipo)
+  const nBaterias = Math.max(1, Math.round(num(d.baterias)) || 3)
 
   function set<K extends keyof DatosTrabajo>(campo: K, valor: DatosTrabajo[K]) {
     setD((prev) => ({ ...prev, [campo]: valor }))
@@ -145,6 +154,18 @@ export function FormTrabajo({
             </select>
           </div>
           <div className="campo">
+            <label htmlFor="t-equipo">Equipo</label>
+            <select
+              id="t-equipo"
+              value={d.equipo}
+              onChange={(e) => set('equipo', e.target.value)}
+            >
+              {EQUIPOS.map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+          <div className="campo">
             <label htmlFor="t-cultivo">Cultivo</label>
             <input
               id="t-cultivo"
@@ -199,7 +220,22 @@ export function FormTrabajo({
           </div>
 
           <div className="separador">Registro de vuelos</div>
-          <RegistroVuelos vuelos={d.vuelos} unidades={u} onChange={setVuelos} />
+          <div className="campo">
+            <label htmlFor="t-bat">Cantidad de baterías</label>
+            <input
+              id="t-bat"
+              inputMode="numeric"
+              value={d.baterias}
+              onChange={(e) => set('baterias', e.target.value)}
+              placeholder="3"
+            />
+          </div>
+          <RegistroVuelos
+            vuelos={d.vuelos}
+            unidades={u}
+            baterias={nBaterias}
+            onChange={setVuelos}
+          />
 
           {d.vuelos.length === 0 && (
             <>

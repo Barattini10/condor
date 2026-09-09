@@ -7,13 +7,19 @@ import { n2, nha, num, tiempo } from '../lib/formato'
 export function RegistroVuelos({
   vuelos,
   unidades,
+  baterias,
   onChange,
 }: {
   vuelos: Vuelo[]
   unidades: UnidadesTrabajo
+  baterias: number
   onChange: (v: Vuelo[]) => void
 }) {
   const conInsumo = unidades.insumo
+  const nBat = baterias > 0 ? baterias : 3
+
+  /** Nº de batería sugerido para el vuelo en la posición i (0-based). */
+  const bateriaCiclo = (i: number) => String((i % nBat) + 1)
 
   function set(i: number, campo: keyof Vuelo, valor: string) {
     const copia = vuelos.slice()
@@ -21,10 +27,8 @@ export function RegistroVuelos({
     onChange(copia)
   }
   function agregar() {
-    onChange([
-      ...vuelos,
-      { bateria: String(vuelos.length + 1), ha: '', min: '', litros: '' },
-    ])
+    // Batería vacía = seguir el ciclo automático (1,2,3,1,2,3…).
+    onChange([...vuelos, { bateria: '', ha: '', min: '', litros: '' }])
   }
   function quitar(i: number) {
     onChange(vuelos.filter((_, j) => j !== i))
@@ -52,7 +56,7 @@ export function RegistroVuelos({
           <div className={'vuelo-fila' + clase} key={i}>
             <div className="idx">{i + 1}</div>
             <input
-              value={v.bateria}
+              value={v.bateria || bateriaCiclo(i)}
               onChange={(e) => set(i, 'bateria', e.target.value)}
             />
             <input
