@@ -82,7 +82,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
         `<tr><td class="c">${i + 1}</td><td class="c">${esc(v.bateria || i + 1)}</td>` +
         `<td class="d">${nha(vha)}</td><td class="d">${n2(vmin)}</td>` +
         (u.insumo ? `<td class="d">${vli ? n2(vli) : '—'}</td>` : '') +
-        `<td class="d">${vmin > 0 ? nha(vha / (vmin / 60)) : '—'}</td></tr>`
+        `</tr>`
       )
     })
     .join('')
@@ -144,7 +144,6 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     dato('Vuelos', vs.length || '') +
     dato('Baterías', vs.length || '') +
     dato('Tiempo total de vuelo', mi ? tiempo(mi) : '') +
-    dato('Rendimiento', ha && mi ? `${nha(ha / (mi / 60))} ha/h` : '') +
     dato('Promedio por batería', vs.length ? `${nha(ha / vs.length)} ha` : '') +
     dato('Equipo', EQUIPO) +
     '</div>' +
@@ -152,11 +151,11 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
       ? '<h2>Registro de vuelos</h2><table><thead><tr>' +
         '<th>#</th><th>Batería</th><th>Hectáreas</th><th>Minutos</th>' +
         (u.insumo ? `<th>${insumoTh}</th>` : '') +
-        '<th>ha/h</th></tr></thead>' +
+        '</tr></thead>' +
         `<tbody>${filas}</tbody><tfoot><tr><td class="c" colspan="2">Total</td>` +
         `<td class="d">${nha(ha)}</td><td class="d">${n2(mi)}</td>` +
         (u.insumo ? `<td class="d">${li ? n2(li) : '—'}</td>` : '') +
-        `<td class="d">${mi > 0 ? nha(ha / (mi / 60)) : '—'}</td></tr></tfoot></table>`
+        `</tr></tfoot></table>`
       : '') +
     '<div class="pie">Informe generado por Cóndor Agro. Los datos de vuelo corresponden al registro del equipo en la fecha indicada.</div>' +
     '</body></html>'
