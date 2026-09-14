@@ -10,7 +10,15 @@ import {
   minTrabajo,
   vuelosValidos,
 } from '../lib/calculos'
-import { fechaCorta, n2, nha, num, numeroTexto, plata, tiempo } from '../lib/formato'
+import {
+  fechaCortaConAno,
+  n2,
+  nha,
+  num,
+  numeroTexto,
+  plata,
+  tiempo,
+} from '../lib/formato'
 import { unidadesDe } from '../lib/unidades'
 
 export function DetalleLote({
@@ -70,7 +78,7 @@ export function DetalleLote({
 
       <div className="p-cuerpo">
         {ts.length > 0 && (
-          <div className="tarjetas">
+          <div className="tarjetas tarjetas-lote">
             <div>
               <b className="num">{nha(haT)}</b>
               <span>ha aplicadas</span>
@@ -130,7 +138,7 @@ export function DetalleLote({
             return (
               <div key={t.id} className="trabajo">
                 <div className="top">
-                  <span className="fecha num">{fechaCorta(t.fecha)}</span>
+                  <span className="fecha num">{fechaCortaConAno(t.fecha)}</span>
                   <span className="tipo">{t.tipo}</span>
                 </div>
                 <div className="detalle">
@@ -169,7 +177,7 @@ export function DetalleLote({
                     className="mini roja"
                     onClick={() => onBorrarTrabajo(t.id)}
                   >
-                    borrar
+                    Borrar trabajo
                   </button>
                 </div>
               </div>

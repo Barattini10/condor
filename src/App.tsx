@@ -64,6 +64,7 @@ export default function App() {
   const [ubicBuscando, setUbicBuscando] = useState(false)
   const [ubicOk, setUbicOk] = useState(false)
   const [importando, setImportando] = useState(false)
+  const [menuAbierto, setMenuAbierto] = useState(false)
 
   const mapaRef = useRef<MapaHandle>(null)
   const inputArchivoRef = useRef<HTMLInputElement>(null)
@@ -172,13 +173,71 @@ export default function App() {
   return (
     <div id="app">
       <div id="barra">
-        <div>
-          <h1>Cóndor Agro</h1>
-          <div className="sub">Bitácora de lotes</div>
+        <div className="barra-fila1">
+          <div>
+            <h1>Cóndor Agro</h1>
+            <div className="sub">Bitácora de lotes</div>
+          </div>
+          <div className="resumen">
+            <b className="num">{nha(haTotal)} ha</b>
+            <span>trabajadas</span>
+          </div>
         </div>
-        <div className="resumen">
-          <b className="num">{nha(haTotal)} ha</b>
-          <span>trabajadas</span>
+
+        <div className="barra-botones">
+          <button className="fab" onClick={empezarDibujo} disabled={modoDibujo}>
+            + Lote
+          </button>
+          <button
+            className="fab sec"
+            onClick={abrirUbicacion}
+            disabled={ubicAbierto}
+          >
+            Ir a ubicación
+          </button>
+
+          <div className="menu-mas">
+            <button
+              className="fab sec"
+              onClick={() => setMenuAbierto((v) => !v)}
+            >
+              ⋮ Más
+            </button>
+            {menuAbierto && (
+              <>
+                <div
+                  className="menu-mas-fondo"
+                  onClick={() => setMenuAbierto(false)}
+                />
+                <div className="menu-mas-lista">
+                  <button
+                    onClick={() => {
+                      setMenuAbierto(false)
+                      setVista({ tipo: 'resumen' })
+                    }}
+                  >
+                    Números
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuAbierto(false)
+                      inputArchivoRef.current?.click()
+                    }}
+                  >
+                    ⬆ Importar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuAbierto(false)
+                      guardarMapa()
+                    }}
+                  >
+                    ⬇ Guardar mapa
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -200,32 +259,6 @@ export default function App() {
           style={{ display: 'none' }}
           onChange={onElegirArchivo}
         />
-
-        {!modoDibujo && !descarga && !ubicAbierto && !importando && (
-          <div id="flotantes">
-            <button
-              className="fab sec"
-              onClick={() => setVista({ tipo: 'resumen' })}
-            >
-              Números
-            </button>
-            <button className="fab sec" onClick={abrirUbicacion}>
-              Ir a ubicación
-            </button>
-            <button
-              className="fab sec"
-              onClick={() => inputArchivoRef.current?.click()}
-            >
-              ⬆ Importar
-            </button>
-            <button className="fab sec" onClick={guardarMapa}>
-              ⬇ Guardar mapa
-            </button>
-            <button className="fab" onClick={empezarDibujo}>
-              + Lote
-            </button>
-          </div>
-        )}
 
         {importando && (
           <div id="modo-dibujo" className="on">

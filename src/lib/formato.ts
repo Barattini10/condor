@@ -49,6 +49,12 @@ export function fechaCorta(f: string): string {
   return p.length === 3 ? `${p[2]}/${p[1]}` : f || ''
 }
 
+/** "2026-09-07" -> "07/09/2026" */
+export function fechaCortaConAno(f: string): string {
+  const p = (f || '').split('-')
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : f || ''
+}
+
 /** "2026-09-07" -> "7 de septiembre de 2026" */
 export function fechaLarga(f: string): string {
   const meses = [
