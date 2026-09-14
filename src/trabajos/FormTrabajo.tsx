@@ -20,7 +20,14 @@ const EQUIPO_POR_DEFECTO = EQUIPOS[0]
 const BATERIAS_POR_DEFECTO = '3'
 
 function gastosVacios(): Gastos {
-  return { quimico: '', combustible: '', viaticos: '', otros: '' }
+  return {
+    quimico: '',
+    combustible: '',
+    viaticos: '',
+    otros: '',
+    kilometrosRecorridos: '',
+    litrosNafta: '',
+  }
 }
 
 function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): DatosTrabajo {
@@ -38,7 +45,9 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
       minutos: previo.minutos,
       litros: previo.litros,
       vuelos: previo.vuelos.map((v) => ({ ...v })),
-      gastos: { ...previo.gastos },
+      // { ...vacíos, ...previo } por si el trabajo es viejo y no tiene los
+      // campos informativos nuevos (quedan '' en vez de undefined).
+      gastos: { ...gastosVacios(), ...previo.gastos },
       facturado: previo.facturado,
     }
   }
@@ -315,6 +324,30 @@ export function FormTrabajo({
               inputMode="decimal"
               value={d.gastos.otros}
               onChange={(e) => setGasto('otros', e.target.value)}
+              placeholder="0"
+            />
+          </div>
+
+          <div className="separador">
+            Datos informativos (no afectan el margen)
+          </div>
+          <div className="campo">
+            <label htmlFor="t-km">Kilómetros recorridos</label>
+            <input
+              id="t-km"
+              inputMode="decimal"
+              value={d.gastos.kilometrosRecorridos}
+              onChange={(e) => setGasto('kilometrosRecorridos', e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          <div className="campo">
+            <label htmlFor="t-ln">Litros de nafta (grupos)</label>
+            <input
+              id="t-ln"
+              inputMode="decimal"
+              value={d.gastos.litrosNafta}
+              onChange={(e) => setGasto('litrosNafta', e.target.value)}
               placeholder="0"
             />
           </div>

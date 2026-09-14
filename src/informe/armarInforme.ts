@@ -10,6 +10,7 @@ import {
   esc,
   fechaCorta,
   fechaLarga,
+  hoyISO,
   n2,
   nha,
   num,
@@ -25,7 +26,14 @@ import {
 } from '../lib/calculos'
 import { unidadesDe } from '../lib/unidades'
 
-const EQUIPO = 'DJI Agras T100'
+/** Datos de contacto del pie del informe. Cambiar acá y listo. */
+const CONTACTO = 'Cóndor Agro Integral · +54 9 3329-601189 · @condoragrointegral'
+
+/** Equipo a mostrar cuando el trabajo no tiene uno cargado (datos viejos). */
+const EQUIPO_POR_DEFECTO = 'DJI Agras T100'
+
+/** Cantidad de baterías por defecto para el ciclo del nº de batería. */
+const BATERIAS_POR_DEFECTO = 3
 
 /** Dibujo esquemático del lote, normalizado a un cuadro de 100x100. */
 function svgLote(pts: PuntoLatLng[]): string {
@@ -70,6 +78,8 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
   const li = litrosTrabajo(t)
   const cr = caudalReal(t)
   const dosisN = numeroTexto(t.dosis)
+  const equipo = t.equipo || EQUIPO_POR_DEFECTO
+  const nBaterias = num(t.baterias) > 0 ? Math.round(num(t.baterias)) : BATERIAS_POR_DEFECTO
   const insumoTh =
     u.insumoColumna.charAt(0).toUpperCase() + u.insumoColumna.slice(1)
 
@@ -78,8 +88,9 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
       const vha = num(v.ha)
       const vmin = num(v.min)
       const vli = num(v.litros)
+      const bateria = v.bateria || (i % nBaterias) + 1
       return (
-        `<tr><td class="c">${i + 1}</td><td class="c">${esc(v.bateria || i + 1)}</td>` +
+        `<tr><td class="c">${i + 1}</td><td class="c">${esc(bateria)}</td>` +
         `<td class="d">${nha(vha)}</td><td class="d">${n2(vmin)}</td>` +
         (u.insumo ? `<td class="d">${vli ? n2(vli) : '—'}</td>` : '') +
         `</tr>`
@@ -121,12 +132,13 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     '</style></head><body>' +
     '<button class="imprimir" onclick="window.print()">Imprimir o guardar en PDF</button>' +
     `<div class="cab"><div class="marca">Cóndor Agro<small>Aplicaciones aéreas de precisión · Baradero, Bs. As.</small></div>` +
-    `<div class="der"><b>Informe de aplicación</b>${esc(fechaLarga(t.fecha))}</div></div>` +
+    `<div class="der"><b>Informe de aplicación</b></div></div>` +
     `<div class="ident">${svgLote(lote.puntos || [])}` +
     `<div class="txt"><h1>${esc(lote.nombre)}</h1>` +
     `<p>${esc(lote.establecimiento || '')}${
       lote.ha ? ` · superficie del lote ${nha(lote.ha)} ha` : ''
-    }</p></div></div>` +
+    }</p>` +
+    `<p>Fecha del trabajo: ${esc(fechaLarga(t.fecha))}</p></div></div>` +
     '<h2>Trabajo realizado</h2><div class="datos">' +
     dato('Tipo', esc(t.tipo)) +
     dato('Cultivo', esc(t.cultivo)) +
@@ -145,7 +157,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     dato('Baterías', vs.length || '') +
     dato('Tiempo total de vuelo', mi ? tiempo(mi) : '') +
     dato('Promedio por batería', vs.length ? `${nha(ha / vs.length)} ha` : '') +
-    dato('Equipo', EQUIPO) +
+    dato('Equipo', esc(equipo)) +
     '</div>' +
     (vs.length
       ? '<h2>Registro de vuelos</h2><table><thead><tr>' +
@@ -157,7 +169,11 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
         (u.insumo ? `<td class="d">${li ? n2(li) : '—'}</td>` : '') +
         `</tr></tfoot></table>`
       : '') +
-    '<div class="pie">Informe generado por Cóndor Agro. Los datos de vuelo corresponden al registro del equipo en la fecha indicada.</div>' +
+    '<div class="pie">' +
+    `Datos tomados del registro de vuelo del ${esc(equipo)}.<br>` +
+    `${esc(CONTACTO)}<br>` +
+    `Informe emitido el ${esc(fechaLarga(hoyISO()))}.` +
+    '</div>' +
     '</body></html>'
 
   const slug = String(lote.nombre || 'lote')

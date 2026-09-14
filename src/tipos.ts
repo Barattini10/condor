@@ -28,6 +28,11 @@ export interface Gastos {
   combustible: string
   viaticos: string
   otros: string
+  /** Solo informativo: no entra en costoTotal ni en el margen. */
+  kilometrosRecorridos?: string
+  /** Litros de nafta de los grupos electrógenos. Solo informativo: la plata
+   * de esa nafta ya está en `combustible`. No entra en costoTotal ni en el margen. */
+  litrosNafta?: string
 }
 
 export interface Lote {
@@ -48,10 +53,14 @@ export interface Trabajo {
   fecha: string
   tipo: TipoTrabajo
   cultivo: string
+  /** Drone con el que se hizo el trabajo (ej. "DJI Agras T100", "Mavic 3M"). */
+  equipo: string
   producto: string
   /** Dosis como número (texto). La unidad (l/ha o kg/ha) sale del tipo. */
   dosis: string
   condiciones: string
+  /** Cantidad de baterías en rotación. Se usa para ciclar el nº de batería por vuelo. */
+  baterias: string
   /** Superficie aplicada, en ha. Se usa si no hay detalle de vuelos. */
   ha: string
   /** Minutos totales de vuelo. Se usa si no hay detalle de vuelos. */
