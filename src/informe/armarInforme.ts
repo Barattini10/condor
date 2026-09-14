@@ -25,12 +25,10 @@ import {
   vuelosValidos,
 } from '../lib/calculos'
 import { unidadesDe } from '../lib/unidades'
+import { equipoDe } from '../lib/equipos'
 
 /** Datos de contacto del pie del informe. Cambiar acá y listo. */
 const CONTACTO = 'Cóndor Agro Integral · +54 9 3329-601189 · @condoragrointegral'
-
-/** Equipo a mostrar cuando el trabajo no tiene uno cargado (datos viejos). */
-const EQUIPO_POR_DEFECTO = 'DJI Agras T100'
 
 /** Cantidad de baterías por defecto para el ciclo del nº de batería. */
 const BATERIAS_POR_DEFECTO = 3
@@ -78,7 +76,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
   const li = litrosTrabajo(t)
   const cr = caudalReal(t)
   const dosisN = numeroTexto(t.dosis)
-  const equipo = t.equipo || EQUIPO_POR_DEFECTO
+  const equipo = equipoDe(t)
   const nBaterias = num(t.baterias) > 0 ? Math.round(num(t.baterias)) : BATERIAS_POR_DEFECTO
   const insumoTh =
     u.insumoColumna.charAt(0).toUpperCase() + u.insumoColumna.slice(1)

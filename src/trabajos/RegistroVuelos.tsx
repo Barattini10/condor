@@ -1,8 +1,12 @@
 /** Tabla de vuelos batería por batería, dentro del formulario de trabajo. */
 
+import { useEffect, useRef, type KeyboardEvent } from 'react'
 import type { Vuelo } from '../tipos'
 import type { UnidadesTrabajo } from '../lib/unidades'
 import { n2, nha, num, tiempo } from '../lib/formato'
+
+/** Campos de la fila que participan de la navegación con Enter (batería no). */
+type CampoNav = 'ha' | 'min' | 'litros'
 
 export function RegistroVuelos({
   vuelos,
@@ -17,6 +21,56 @@ export function RegistroVuelos({
 }) {
   const conInsumo = unidades.insumo
   const nBat = baterias > 0 ? baterias : 3
+
+  // Referencias a los inputs de cada fila, para poder enfocarlos con Enter.
+  const inputsRef = useRef<Map<string, HTMLInputElement>>(new Map())
+  // Cuando Enter en la última fila agrega una nueva, hay que esperar a que
+  // React la renderice antes de poder enfocarla.
+  const enfocarFilaNuevaRef = useRef(false)
+
+  function refCampo(i: number, campo: CampoNav) {
+    return (el: HTMLInputElement | null) => {
+      const clave = `${i}-${campo}`
+      if (el) inputsRef.current.set(clave, el)
+      else inputsRef.current.delete(clave)
+    }
+  }
+  function enfocar(i: number, campo: CampoNav) {
+    inputsRef.current.get(`${i}-${campo}`)?.focus()
+  }
+
+  useEffect(() => {
+    if (enfocarFilaNuevaRef.current) {
+      enfocarFilaNuevaRef.current = false
+      enfocar(vuelos.length - 1, 'ha')
+    }
+  }, [vuelos.length])
+
+  function irAFilaSiguienteOAgregar(i: number) {
+    if (i + 1 < vuelos.length) {
+      enfocar(i + 1, 'ha')
+    } else {
+      enfocarFilaNuevaRef.current = true
+      agregar()
+    }
+  }
+
+  function manejarEnter(
+    e: KeyboardEvent<HTMLInputElement>,
+    i: number,
+    campo: CampoNav,
+  ) {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    if (campo === 'ha') {
+      enfocar(i, 'min')
+    } else if (campo === 'min' && conInsumo) {
+      enfocar(i, 'litros')
+    } else {
+      // 'litros', o 'min' cuando el tipo no tiene columna de insumo (Mapeo).
+      irAFilaSiguienteOAgregar(i)
+    }
+  }
 
   /** Nº de batería sugerido para el vuelo en la posición i (0-based). */
   const bateriaCiclo = (i: number) => String((i % nBat) + 1)
@@ -60,23 +114,29 @@ export function RegistroVuelos({
               onChange={(e) => set(i, 'bateria', e.target.value)}
             />
             <input
+              ref={refCampo(i, 'ha')}
               inputMode="decimal"
               placeholder="ha"
               value={v.ha}
               onChange={(e) => set(i, 'ha', e.target.value)}
+              onKeyDown={(e) => manejarEnter(e, i, 'ha')}
             />
             <input
+              ref={refCampo(i, 'min')}
               inputMode="decimal"
               placeholder="min"
               value={v.min}
               onChange={(e) => set(i, 'min', e.target.value)}
+              onKeyDown={(e) => manejarEnter(e, i, 'min')}
             />
             {conInsumo && (
               <input
+                ref={refCampo(i, 'litros')}
                 inputMode="decimal"
                 placeholder={unidades.insumoColumna}
                 value={v.litros}
                 onChange={(e) => set(i, 'litros', e.target.value)}
+                onKeyDown={(e) => manejarEnter(e, i, 'litros')}
               />
             )}
             <button

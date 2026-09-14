@@ -20,6 +20,7 @@ import {
   tiempo,
 } from '../lib/formato'
 import { unidadesDe } from '../lib/unidades'
+import { agruparPorEquipo } from '../lib/equipos'
 
 export function DetalleLote({
   loteId,
@@ -45,6 +46,10 @@ export function DetalleLote({
   const haT = ts.reduce((s, t) => s + haTrabajo(t), 0)
   const factT = ts.reduce((s, t) => s + num(t.facturado), 0)
   const mgT = ts.reduce((s, t) => s + margen(t), 0)
+
+  // Desglose por equipo: solo tiene sentido mostrarlo si el lote tuvo
+  // trabajos de más de un equipo.
+  const gruposEquipo = agruparPorEquipo(ts)
 
   async function onBorrarTrabajo(id: string) {
     if (!window.confirm('¿Borrar este trabajo?')) return
@@ -93,6 +98,37 @@ export function DetalleLote({
               </b>
               <span>margen por ha</span>
             </div>
+          </div>
+        )}
+
+        {gruposEquipo.length > 1 && (
+          <div className="tarjetas-equipo">
+            {gruposEquipo.map((g) => {
+              const ghaT = g.trabajos.reduce((s, t) => s + haTrabajo(t), 0)
+              const gfactT = g.trabajos.reduce((s, t) => s + num(t.facturado), 0)
+              const gmgT = g.trabajos.reduce((s, t) => s + margen(t), 0)
+              return (
+                <div className="equipo-fila" key={g.equipo}>
+                  <div className="equipo-nom">{g.equipo}</div>
+                  <div className="equipo-datos">
+                    <div>
+                      <span>ha</span>
+                      <b className="num">{nha(ghaT)}</b>
+                    </div>
+                    <div>
+                      <span>facturado</span>
+                      <b className="num">{plata(gfactT)}</b>
+                    </div>
+                    <div>
+                      <span>margen/ha</span>
+                      <b className={'num ' + (gmgT >= 0 ? 'pos' : 'neg')}>
+                        {plata(ghaT > 0 ? gmgT / ghaT : 0)}
+                      </b>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
 

@@ -11,6 +11,7 @@ import './App.css'
 import type { PuntoLatLng } from './tipos'
 import { useBitacora } from './datos/bitacora-context'
 import { haTrabajo } from './lib/calculos'
+import { agruparPorEquipo, nombreCortoEquipo } from './lib/equipos'
 import { nha } from './lib/formato'
 import { Mapa, type MapaHandle } from './mapa/Mapa'
 import type { ProgresoDescarga } from './mapa/tilesOffline'
@@ -73,8 +74,12 @@ export default function App() {
     () => new Set(trabajos.map((t) => t.loteId)),
     [trabajos],
   )
-  const haTotal = useMemo(
-    () => trabajos.reduce((s, t) => s + haTrabajo(t), 0),
+  const haPorEquipo = useMemo(
+    () =>
+      agruparPorEquipo(trabajos).map((g) => ({
+        equipo: g.equipo,
+        ha: g.trabajos.reduce((s, t) => s + haTrabajo(t), 0),
+      })),
     [trabajos],
   )
 
@@ -179,8 +184,19 @@ export default function App() {
             <div className="sub">Bitácora de lotes</div>
           </div>
           <div className="resumen">
-            <b className="num">{nha(haTotal)} ha</b>
-            <span>trabajadas</span>
+            {haPorEquipo.length === 0 ? (
+              <div className="resumen-item">
+                <b className="num">0 ha</b>
+                <span>trabajadas</span>
+              </div>
+            ) : (
+              haPorEquipo.map((e) => (
+                <div className="resumen-item" key={e.equipo}>
+                  <b className="num">{nha(e.ha)} ha</b>
+                  <span>{nombreCortoEquipo(e.equipo)}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

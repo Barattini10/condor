@@ -13,6 +13,7 @@ import {
 } from '../lib/calculos'
 import { fechaCorta, n2, nha, num, numeroTexto, plata } from '../lib/formato'
 import { unidadesDe } from '../lib/unidades'
+import { agruparPorEquipo, equipoDe } from '../lib/equipos'
 
 function BloqueDatos({
   onExportar,
@@ -98,12 +99,13 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
   const batT = trabajos.reduce((s, t) => s + vuelosValidos(t).length, 0)
   const minT = trabajos.reduce((s, t) => s + minTrabajo(t), 0)
   const mgT = factT - gastoT
+  const gruposEquipo = agruparPorEquipo(trabajos)
 
   const ranking = trabajos
     .map((t) => {
       const l = lotes.find((x) => x.id === t.loteId)
       return {
-        nom: `${l ? l.nombre : '?'} · ${fechaCorta(t.fecha)}`,
+        nom: `${l ? l.nombre : '?'} · ${fechaCorta(t.fecha)} · ${equipoDe(t)}`,
         v: margenHa(t),
       }
     })
@@ -113,9 +115,9 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
   function exportarCSV() {
     const filas: (string | number)[][] = [
       [
-        'fecha', 'lote', 'establecimiento', 'tipo', 'cultivo', 'ha', 'producto',
-        'dosis', 'dosis_unidad', 'caudal_real', 'cantidad', 'cantidad_unidad',
-        'vuelos', 'minutos', 'facturado',
+        'fecha', 'lote', 'establecimiento', 'tipo', 'equipo', 'cultivo', 'ha',
+        'producto', 'dosis', 'dosis_unidad', 'caudal_real', 'cantidad',
+        'cantidad_unidad', 'vuelos', 'minutos', 'facturado',
         'quimico', 'combustible', 'viaticos', 'otros', 'margen', 'margen_ha',
       ],
     ]
@@ -125,8 +127,8 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
       const u = unidadesDe(t.tipo)
       const dosisN = numeroTexto(t.dosis)
       filas.push([
-        t.fecha, l?.nombre ?? '', l?.establecimiento ?? '', t.tipo, t.cultivo,
-        nha(haTrabajo(t)), u.producto ? t.producto : '',
+        t.fecha, l?.nombre ?? '', l?.establecimiento ?? '', t.tipo, equipoDe(t),
+        t.cultivo, nha(haTrabajo(t)), u.producto ? t.producto : '',
         u.dosis && dosisN ? n2(num(dosisN)) : '', u.dosis ? u.dosisUnidad : '',
         u.caudal ? n2(caudalReal(t)) : '',
         u.insumo ? n2(litrosTrabajo(t)) : '', u.insumo ? u.insumoColumna : '',
@@ -184,6 +186,65 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
             <span>margen por ha</span>
           </div>
         </div>
+
+        {gruposEquipo.length > 0 && (
+          <div className="por-equipo">
+            <h3>Por equipo</h3>
+            {gruposEquipo.map((g) => {
+              const ghaT = g.trabajos.reduce((s, t) => s + haTrabajo(t), 0)
+              const gfactT = g.trabajos.reduce(
+                (s, t) => s + num(t.facturado),
+                0,
+              )
+              const ggastoT = g.trabajos.reduce((s, t) => s + costoTotal(t), 0)
+              const gbatT = g.trabajos.reduce(
+                (s, t) => s + vuelosValidos(t).length,
+                0,
+              )
+              const gminT = g.trabajos.reduce((s, t) => s + minTrabajo(t), 0)
+              const gmgT = gfactT - ggastoT
+              return (
+                <div key={g.equipo} className="por-equipo-grupo">
+                  <div className="equipo-nom">{g.equipo}</div>
+                  <div className="tarjetas">
+                    <div>
+                      <b className="num">{nha(ghaT)}</b>
+                      <span>hectáreas</span>
+                    </div>
+                    <div>
+                      <b className="num">{plata(gfactT)}</b>
+                      <span>facturado</span>
+                    </div>
+                    <div>
+                      <b className={'num ' + (gmgT >= 0 ? 'pos' : 'neg')}>
+                        {plata(gmgT)}
+                      </b>
+                      <span>margen</span>
+                    </div>
+                    <div>
+                      <b className={'num ' + (gmgT >= 0 ? 'pos' : 'neg')}>
+                        {plata(ghaT > 0 ? gmgT / ghaT : 0)}
+                      </b>
+                      <span>margen por ha</span>
+                    </div>
+                    <div>
+                      <b className="num">
+                        {gbatT > 0 ? nha(ghaT / gbatT) : '—'}
+                      </b>
+                      <span>ha por batería</span>
+                    </div>
+                    <div>
+                      <b className="num">
+                        {gminT > 0 ? nha(ghaT / (gminT / 60)) : '—'}
+                      </b>
+                      <span>ha por hora de vuelo</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         <div className="tarjetas" style={{ marginBottom: 20 }}>
           <div>

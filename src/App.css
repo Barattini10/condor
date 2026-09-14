@@ -53,7 +53,6 @@
 }
 .menu-mas {
   position: relative;
-  margin-left: auto;
 }
 .menu-mas-fondo {
   position: fixed;
@@ -102,16 +101,22 @@
 }
 #barra .resumen {
   margin-left: auto;
+  display: flex;
+  gap: 12px;
+}
+.resumen-item {
   text-align: right;
 }
-#barra .resumen b {
+.resumen-item b {
+  display: block;
   font-size: 16px;
   font-weight: 600;
 }
-#barra .resumen span {
+.resumen-item span {
   display: block;
   color: var(--gris);
   font-size: 11px;
+  white-space: nowrap;
 }
 
 #wrap-mapa {
@@ -601,6 +606,68 @@
   font-weight: 600;
   letter-spacing: -0.02em;
 }
+
+.tarjetas-equipo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: -4px 0 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--linea);
+}
+.equipo-fila {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.equipo-nom {
+  min-width: 92px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--verde-claro);
+}
+.equipo-datos {
+  display: flex;
+  gap: 16px;
+}
+.equipo-datos span {
+  display: block;
+  color: var(--gris);
+  font-size: 10.5px;
+  text-transform: uppercase;
+}
+.equipo-datos b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.por-equipo {
+  border-top: 1px solid var(--linea);
+  padding-top: 12px;
+  margin-bottom: 20px;
+}
+.por-equipo h3 {
+  font-size: 12.5px;
+  color: var(--verde-claro);
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+.por-equipo-grupo {
+  margin-bottom: 14px;
+}
+.por-equipo-grupo:last-child {
+  margin-bottom: 0;
+}
+.por-equipo-grupo .equipo-nom {
+  min-width: 0;
+  margin-bottom: 8px;
+}
+.por-equipo-grupo .tarjetas {
+  margin-bottom: 0;
+  gap: 16px;
+}
+
 .rank {
   border-top: 1px solid var(--linea);
   padding-top: 12px;

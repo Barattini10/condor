@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useBitacora, type DatosTrabajo } from '../datos/bitacora-context'
 import type { Gastos, TipoTrabajo, Trabajo, Vuelo } from '../tipos'
 import { costoTotal, margen, margenHa } from '../lib/calculos'
+import { EQUIPOS, EQUIPO_POR_DEFECTO } from '../lib/equipos'
 import { hoyISO, num, numeroTexto, plata } from '../lib/formato'
 import { unidadesDe } from '../lib/unidades'
 import { RegistroVuelos } from './RegistroVuelos'
@@ -15,8 +16,9 @@ const TIPOS: TipoTrabajo[] = [
   'Mapeo',
 ]
 
-const EQUIPOS = ['DJI Agras T100', 'Mavic 3M']
-const EQUIPO_POR_DEFECTO = EQUIPOS[0]
+/** El Mavic 3M solo mapea; el resto de los equipos, todo salvo Mapeo. */
+const TIPOS_SIN_MAPEO: TipoTrabajo[] = TIPOS.filter((t) => t !== 'Mapeo')
+
 const BATERIAS_POR_DEFECTO = '3'
 
 function gastosVacios(): Gastos {
@@ -90,6 +92,9 @@ export function FormTrabajo({
   const u = unidadesDe(d.tipo)
   const nBaterias = Math.max(1, Math.round(num(d.baterias)) || 3)
 
+  const esMavic = d.equipo === 'Mavic 3M'
+  const tiposDisponibles = esMavic ? ['Mapeo' as const] : TIPOS_SIN_MAPEO
+
   function set<K extends keyof DatosTrabajo>(campo: K, valor: DatosTrabajo[K]) {
     setD((prev) => ({ ...prev, [campo]: valor }))
   }
@@ -98,6 +103,19 @@ export function FormTrabajo({
   }
   function setVuelos(v: Vuelo[]) {
     setD((prev) => ({ ...prev, vuelos: v }))
+  }
+  function cambiarEquipo(nuevoEquipo: string) {
+    setD((prev) => {
+      let tipo = prev.tipo
+      if (nuevoEquipo === 'Mavic 3M') {
+        // El Mavic solo mapea.
+        tipo = 'Mapeo'
+      } else if (tipo === 'Mapeo') {
+        // El equipo nuevo no mapea: hay que salir de "Mapeo" sí o sí.
+        tipo = TIPOS_SIN_MAPEO[0]
+      }
+      return { ...prev, equipo: nuevoEquipo, tipo }
+    })
   }
 
   const preview = useMemo(() => {
@@ -114,11 +132,13 @@ export function FormTrabajo({
   async function guardar() {
     if (guardando) return
     setGuardando(true)
-    // Guardar la dosis limpia y no arrastrar campos que este tipo no usa.
+    // Producto y Dosis NO se borran aunque el tipo actual los oculte: si
+    // cambiás de equipo/tipo y volvés, quedan como estaban. La dosis sí se
+    // normaliza a número limpio. El total manual de insumo sigue
+    // limpiándose cuando el tipo no lo usa (litros de Mapeo no aplican).
     const limpio: DatosTrabajo = {
       ...d,
-      producto: u.producto ? d.producto : '',
-      dosis: u.dosis ? numeroTexto(d.dosis) : '',
+      dosis: numeroTexto(d.dosis),
       litros: u.insumo ? d.litros : '',
     }
     await guardarTrabajo(loteId, trabajoId, limpio)
@@ -156,8 +176,9 @@ export function FormTrabajo({
               id="t-tipo"
               value={d.tipo}
               onChange={(e) => set('tipo', e.target.value as TipoTrabajo)}
+              disabled={esMavic}
             >
-              {TIPOS.map((o) => (
+              {tiposDisponibles.map((o) => (
                 <option key={o}>{o}</option>
               ))}
             </select>
@@ -167,7 +188,7 @@ export function FormTrabajo({
             <select
               id="t-equipo"
               value={d.equipo}
-              onChange={(e) => set('equipo', e.target.value)}
+              onChange={(e) => cambiarEquipo(e.target.value)}
             >
               {EQUIPOS.map((o) => (
                 <option key={o}>{o}</option>
