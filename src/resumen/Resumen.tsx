@@ -11,9 +11,20 @@ import {
   minTrabajo,
   vuelosValidos,
 } from '../lib/calculos'
-import { fechaCorta, n2, nha, num, numeroTexto, plata } from '../lib/formato'
+import { fechaCorta, nha, num, numeroTexto, plata } from '../lib/formato'
 import { unidadesDe } from '../lib/unidades'
 import { agruparPorEquipo, equipoDe } from '../lib/equipos'
+
+/**
+ * Número -> texto para el CSV: 2 decimales, con punto (no coma), sin
+ * separador de miles. A diferencia de n2()/nha() (que formatean "a la
+ * argentina" para mostrar en pantalla), acá el punto es a propósito: el
+ * CSV usa ; como separador de columnas y necesita el punto para que Excel
+ * no rompa la columna.
+ */
+function numCSV(n: number): string {
+  return n.toFixed(2)
+}
 
 function BloqueDatos({
   onExportar,
@@ -128,12 +139,16 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
       const dosisN = numeroTexto(t.dosis)
       filas.push([
         t.fecha, l?.nombre ?? '', l?.establecimiento ?? '', t.tipo, equipoDe(t),
-        t.cultivo, nha(haTrabajo(t)), u.producto ? t.producto : '',
-        u.dosis && dosisN ? n2(num(dosisN)) : '', u.dosis ? u.dosisUnidad : '',
-        u.caudal ? n2(caudalReal(t)) : '',
-        u.insumo ? n2(litrosTrabajo(t)) : '', u.insumo ? u.insumoColumna : '',
-        vuelosValidos(t).length, minTrabajo(t), t.facturado,
-        g.quimico, g.combustible, g.viaticos, g.otros,
+        t.cultivo, numCSV(haTrabajo(t)), u.producto ? t.producto : '',
+        u.dosis && dosisN ? numCSV(num(dosisN)) : '', u.dosis ? u.dosisUnidad : '',
+        u.caudal ? numCSV(caudalReal(t)) : '',
+        u.insumo ? numCSV(litrosTrabajo(t)) : '', u.insumo ? u.insumoColumna : '',
+        vuelosValidos(t).length, numCSV(minTrabajo(t)),
+        t.facturado ? numCSV(num(t.facturado)) : '',
+        g.quimico ? numCSV(num(g.quimico)) : '',
+        g.combustible ? numCSV(num(g.combustible)) : '',
+        g.viaticos ? numCSV(num(g.viaticos)) : '',
+        g.otros ? numCSV(num(g.otros)) : '',
         Math.round(num(t.facturado) - costoTotal(t)), Math.round(margenHa(t)),
       ])
     })
@@ -141,7 +156,7 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
       .map((r) =>
         r
           .map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`)
-          .join(','),
+          .join(';'),
       )
       .join('\n')
     const a = document.createElement('a')

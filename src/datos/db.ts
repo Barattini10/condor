@@ -20,55 +20,86 @@ const VERSION = 1
 
 let dbp: Promise<IDBPDatabase<CondorDB>> | null = null
 
+function abrir(): Promise<IDBPDatabase<CondorDB>> {
+  return openDB<CondorDB>(NOMBRE, VERSION, {
+    upgrade(d) {
+      d.createObjectStore('lotes', { keyPath: 'id' })
+      const trabajos = d.createObjectStore('trabajos', { keyPath: 'id' })
+      trabajos.createIndex('loteId', 'loteId')
+      d.createObjectStore('meta')
+    },
+    // Safari (sobre todo instalada como PWA) a veces cierra sola la conexión
+    // cuando la página pasa un momento a segundo plano (p. ej. al abrir el
+    // selector de archivos). Si pasa, tiramos la conexión guardada para que
+    // la próxima operación abra una nueva.
+    terminated() {
+      dbp = null
+    },
+  })
+}
+
 function db(): Promise<IDBPDatabase<CondorDB>> {
-  if (!dbp) {
-    dbp = openDB<CondorDB>(NOMBRE, VERSION, {
-      upgrade(d) {
-        d.createObjectStore('lotes', { keyPath: 'id' })
-        const trabajos = d.createObjectStore('trabajos', { keyPath: 'id' })
-        trabajos.createIndex('loteId', 'loteId')
-        d.createObjectStore('meta')
-      },
-    })
-  }
+  if (!dbp) dbp = abrir()
   return dbp
+}
+
+/**
+ * Ejecuta `fn` con la conexión abierta. Si falla porque el navegador cerró la
+ * conexión de golpe (ver `terminated` arriba, o si el cierre pasó justo antes
+ * de que `terminated` llegara a avisarnos), reabre una vez y reintenta.
+ */
+async function conReintento<T>(
+  fn: (d: IDBPDatabase<CondorDB>) => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn(await db())
+  } catch {
+    dbp = null
+    return await fn(await db())
+  }
 }
 
 /** Trae todo lo no borrado. */
 export async function cargarTodo(): Promise<{ lotes: Lote[]; trabajos: Trabajo[] }> {
-  const d = await db()
-  const [lotes, trabajos] = await Promise.all([d.getAll('lotes'), d.getAll('trabajos')])
-  return {
-    lotes: lotes.filter((l) => !l.deleted),
-    trabajos: trabajos.filter((t) => !t.deleted),
-  }
+  return conReintento(async (d) => {
+    const [lotes, trabajos] = await Promise.all([
+      d.getAll('lotes'),
+      d.getAll('trabajos'),
+    ])
+    return {
+      lotes: lotes.filter((l) => !l.deleted),
+      trabajos: trabajos.filter((t) => !t.deleted),
+    }
+  })
 }
 
 export async function guardarLote(l: Lote): Promise<void> {
-  await (await db()).put('lotes', l)
+  await conReintento((d) => d.put('lotes', l))
 }
 
 export async function guardarTrabajo(t: Trabajo): Promise<void> {
-  await (await db()).put('trabajos', t)
+  await conReintento((d) => d.put('trabajos', t))
 }
 
 /** Guarda varios registros de una (import / restore de backup). */
 export async function guardarLotes(ls: Lote[]): Promise<void> {
-  const d = await db()
-  const tx = d.transaction('lotes', 'readwrite')
-  await Promise.all([...ls.map((l) => tx.store.put(l)), tx.done])
+  await conReintento(async (d) => {
+    const tx = d.transaction('lotes', 'readwrite')
+    await Promise.all([...ls.map((l) => tx.store.put(l)), tx.done])
+  })
 }
 
 export async function guardarTrabajos(ts: Trabajo[]): Promise<void> {
-  const d = await db()
-  const tx = d.transaction('trabajos', 'readwrite')
-  await Promise.all([...ts.map((t) => tx.store.put(t)), tx.done])
+  await conReintento(async (d) => {
+    const tx = d.transaction('trabajos', 'readwrite')
+    await Promise.all([...ts.map((t) => tx.store.put(t)), tx.done])
+  })
 }
 
 export async function leerMeta<T = unknown>(clave: string): Promise<T | undefined> {
-  return (await (await db()).get('meta', clave)) as T | undefined
+  return conReintento(async (d) => (await d.get('meta', clave)) as T | undefined)
 }
 
 export async function escribirMeta(clave: string, valor: unknown): Promise<void> {
-  await (await db()).put('meta', valor, clave)
+  await conReintento((d) => d.put('meta', valor, clave))
 }
