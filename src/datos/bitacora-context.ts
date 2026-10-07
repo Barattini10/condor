@@ -19,6 +19,9 @@ export interface DatosNuevoLote {
 /** Campos editables de un trabajo (sin la metadata que maneja el store). */
 export type DatosTrabajo = Omit<Trabajo, 'id' | 'loteId' | 'updatedAt' | 'deleted'>
 
+/** Campos de un lote que se pueden editar después de creado (no la geometría). */
+export type DatosEdicionLote = Partial<Pick<Lote, 'nombre' | 'establecimiento' | 'cliente'>>
+
 export interface BitacoraApi {
   lotes: Lote[]
   trabajos: Trabajo[]
@@ -26,6 +29,7 @@ export interface BitacoraApi {
   trabajosDeLote: (loteId: string) => Trabajo[]
   lotePorId: (id: string) => Lote | undefined
   crearLote: (d: DatosNuevoLote) => Promise<Lote>
+  actualizarLote: (id: string, cambios: DatosEdicionLote) => Promise<void>
   borrarLote: (id: string) => Promise<void>
   guardarTrabajo: (
     loteId: string,

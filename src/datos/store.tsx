@@ -59,6 +59,14 @@ export function BitacoraProvider({ children }: { children: ReactNode }) {
         return l
       },
 
+      async actualizarLote(id, cambios) {
+        const lote = lotes.find((l) => l.id === id)
+        if (!lote) return
+        const actualizado: Lote = { ...lote, ...cambios, updatedAt: ahora() }
+        await db.guardarLote(actualizado)
+        setLotes((xs) => xs.map((l) => (l.id === id ? actualizado : l)))
+      },
+
       async borrarLote(id) {
         const t = ahora()
         const lote = lotes.find((l) => l.id === id)

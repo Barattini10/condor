@@ -1,5 +1,6 @@
 /** Panel de un lote: sus números y la lista de trabajos hechos ahí. */
 
+import { useState } from 'react'
 import { useBitacora } from '../datos/bitacora-context'
 import {
   caudalReal,
@@ -35,13 +36,19 @@ export function DetalleLote({
   onEditarTrabajo: (trabajoId: string) => void
   onVerInforme: (trabajoId: string) => void
 }) {
-  const { lotePorId, trabajosDeLote, borrarTrabajo, borrarLote } = useBitacora()
+  const { lotePorId, trabajosDeLote, borrarTrabajo, borrarLote, actualizarLote } =
+    useBitacora()
   const lote = lotePorId(loteId)
-  if (!lote) return null
 
-  const ts = trabajosDeLote(loteId)
-    .slice()
-    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+  const [editando, setEditando] = useState(false)
+  const [nombreEdit, setNombreEdit] = useState('')
+  const [establecimientoEdit, setEstablecimientoEdit] = useState('')
+
+  const ts = lote
+    ? trabajosDeLote(loteId)
+        .slice()
+        .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+    : []
 
   const haT = ts.reduce((s, t) => s + haTrabajo(t), 0)
   const factT = ts.reduce((s, t) => s + num(t.facturado), 0)
@@ -67,15 +74,70 @@ export function DetalleLote({
     onVolver()
   }
 
+  function empezarEdicion() {
+    if (!lote) return
+    setNombreEdit(lote.nombre)
+    setEstablecimientoEdit(lote.establecimiento)
+    setEditando(true)
+  }
+
+  async function guardarEdicion() {
+    if (!nombreEdit.trim()) return
+    await actualizarLote(loteId, {
+      nombre: nombreEdit.trim(),
+      establecimiento: establecimientoEdit.trim(),
+    })
+    setEditando(false)
+  }
+
+  if (!lote) return null
+
   return (
     <>
       <div className="p-cabeza">
-        <div>
-          <h2>{lote.nombre}</h2>
-          <div className="meta">
-            {lote.establecimiento || 'Sin establecimiento'} · {nha(lote.ha)} ha
+        {editando ? (
+          <div className="form-grid" style={{ flex: 1 }}>
+            <div className="campo ancho">
+              <label htmlFor="le-nombre">Nombre del lote</label>
+              <input
+                id="le-nombre"
+                autoFocus
+                value={nombreEdit}
+                onChange={(e) => setNombreEdit(e.target.value)}
+              />
+            </div>
+            <div className="campo ancho">
+              <label htmlFor="le-est">Establecimiento o cliente</label>
+              <input
+                id="le-est"
+                value={establecimientoEdit}
+                onChange={(e) => setEstablecimientoEdit(e.target.value)}
+              />
+            </div>
+            <div className="acciones" style={{ marginTop: 0 }}>
+              <button
+                className="btn-cancelar"
+                onClick={() => setEditando(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-guardar"
+                onClick={guardarEdicion}
+                disabled={!nombreEdit.trim()}
+              >
+                Guardar
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <h2>{lote.nombre}</h2>
+            <div className="meta">
+              {lote.establecimiento || 'Sin establecimiento'} · {nha(lote.ha)} ha
+            </div>
+          </div>
+        )}
         <button className="cerrar" onClick={onVolver} aria-label="Volver">
           ✕
         </button>
@@ -226,8 +288,13 @@ export function DetalleLote({
             marginTop: 8,
             paddingTop: 12,
             borderTop: '1px solid var(--linea)',
+            display: 'flex',
+            gap: 10,
           }}
         >
+          <button className="mini" onClick={empezarEdicion}>
+            Editar lote
+          </button>
           <button className="mini roja" onClick={onBorrarLote}>
             Borrar este lote
           </button>
