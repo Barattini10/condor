@@ -25,6 +25,7 @@ import {
 import { unidadesDe } from '../lib/unidades'
 import { equipoDe } from '../lib/equipos'
 import { productosDe, totalProducto } from '../lib/productos'
+import { LOGO_CONDOR } from './logoCondor'
 
 /** Datos de contacto del pie del informe. Cambiar acá y listo. */
 const CONTACTO = 'Cóndor Agro Integral · +54 9 3329-601189 · @condoragrointegral'
@@ -99,7 +100,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     '.cab .der b{display:block;font-size:15px;color:#20261c}' +
     'h2{font-size:12px;color:#40673b;margin:24px 0 10px;font-weight:700;border-bottom:1px solid #d7e5d0;padding-bottom:5px}' +
     '.ident{display:flex;gap:18px;align-items:center;background:#f4f7f2;border-radius:6px;padding:14px 16px}' +
-    '.logo-espacio{flex:0 0 auto;width:120px;height:120px}' +
+    '.logo-espacio{flex:0 0 auto;width:120px;height:120px;display:block;object-fit:contain}' +
     '.ident .txt{flex:1}' +
     '.ident .txt h1{font-size:20px;margin:0 0 3px;letter-spacing:-.02em}' +
     '.ident .txt p{margin:0;color:#6b7a63;font-size:13px}' +
@@ -121,7 +122,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     '<button class="imprimir" onclick="window.print()">Imprimir o guardar en PDF</button>' +
     `<div class="cab"><div class="marca">Cóndor Agro<small>Aplicaciones aéreas de precisión · Baradero, Bs. As.</small></div>` +
     `<div class="der"><b>Informe de aplicación</b></div></div>` +
-    `<div class="ident"><div class="logo-espacio"></div>` +
+    `<div class="ident"><img class="logo-espacio" src="${LOGO_CONDOR}" alt="Cóndor Agro">` +
     `<div class="txt"><h1>${esc(lote.nombre)}</h1>` +
     `<p>${esc(lote.establecimiento || '')}${
       lote.ha ? ` · superficie del lote ${nha(lote.ha)} ha` : ''
