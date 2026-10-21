@@ -164,20 +164,21 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
       ? '<h2>Mapa de aplicación</h2>' +
         t.imagenes
           .map((img) => {
-            // La imagen va de fondo de un bloque, no como <img>: algunos
-            // visores de PDF dibujan las <img> a su tamaño físico real e
-            // ignoran el ancho que se les ponga por CSS. Un fondo, en
-            // cambio, se estira siempre al tamaño del bloque que lo
-            // contiene — y ese tamaño sale de un padding en %, que
-            // cualquier motor calcula igual (depende solo del ancho).
-            const proporcion = img.ancho > 0 ? (img.alto / img.ancho) * 100 : 66.7
+            // El ancho/alto van como ATRIBUTOS del <img> (no solo por CSS):
+            // es la forma más antigua y básica de indicarle un tamaño a una
+            // imagen, la que cualquier motor de impresión/PDF respeta,
+            // incluso los que ignoran el ancho puesto por CSS. El style
+            // de abajo es la versión "linda" para cuando se ve en pantalla
+            // (responsive); los atributos son la red de contención.
+            const anchoFijo = 650
+            const altoFijo = Math.round(
+              anchoFijo * (img.ancho > 0 ? img.alto / img.ancho : 0.667),
+            )
             return (
-              '<div role="img" aria-label="Mapa de aplicación" style="' +
-              `width:100%;padding-top:${proporcion.toFixed(2)}%;` +
-              `background-image:url('${esc(img.src)}');` +
-              'background-size:contain;background-repeat:no-repeat;' +
-              'background-position:center;border-radius:6px;' +
-              'margin:8px 0 14px"></div>'
+              `<img src="${esc(img.src)}" alt="Mapa de aplicación" ` +
+              `width="${anchoFijo}" height="${altoFijo}" style="` +
+              'display:block;width:100%;max-width:100%;height:auto;' +
+              'border-radius:6px;margin:8px 0 14px">'
             )
           })
           .join('')
