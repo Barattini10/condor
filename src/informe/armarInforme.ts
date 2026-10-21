@@ -114,7 +114,8 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     'td{padding:6px 7px;border-bottom:1px solid #e6ebe3;font-variant-numeric:tabular-nums}' +
     'td.c{text-align:center;color:#6b7a63}td.d{text-align:right}' +
     'tfoot td{font-weight:700;border-top:2px solid #40673b;border-bottom:none;background:#f4f7f2}' +
-    '.mapa{display:block;width:100%;border-radius:6px;margin-top:8px;margin-bottom:14px}' +
+    '.mapa-cont{width:100%;margin-top:8px;margin-bottom:14px}' +
+    '.mapa{display:block;width:100%;max-width:100%;height:auto;border-radius:6px}' +
     '.pie{margin-top:26px;padding-top:12px;border-top:1px solid #d7e5d0;font-size:11px;color:#8a9682}' +
     '.imprimir{background:#40673b;color:#fff;border:none;border-radius:5px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:18px;font-family:inherit}' +
     '@media print{.imprimir{display:none}body{padding:0}}' +
@@ -164,7 +165,10 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     (t.imagenes && t.imagenes.length
       ? '<h2>Mapa de aplicación</h2>' +
         t.imagenes
-          .map((src) => `<img class="mapa" src="${esc(src)}" alt="Mapa de aplicación">`)
+          .map(
+            (src) =>
+              `<div class="mapa-cont"><img class="mapa" src="${esc(src)}" alt="Mapa de aplicación"></div>`,
+          )
           .join('')
       : '') +
     '<div class="pie">' +
