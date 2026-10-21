@@ -72,6 +72,8 @@ export interface Trabajo {
   dosis: string
   /** La mezcla aplicada: un producto por fila, con su dosis y unidad. */
   productos?: ProductoAplicado[]
+  /** Capturas del mapa de vuelo (JPEG, ya redimensionadas/comprimidas). */
+  imagenes?: string[]
   condiciones: string
   /** Cantidad de baterías en rotación. Se usa para ciclar el nº de batería por vuelo. */
   baterias: string

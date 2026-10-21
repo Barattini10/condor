@@ -8,6 +8,7 @@ import { EQUIPOS, EQUIPO_POR_DEFECTO } from '../lib/equipos'
 import { hoyISO, num, plata } from '../lib/formato'
 import { productosDe } from '../lib/productos'
 import { unidadesDe } from '../lib/unidades'
+import { RegistroImagenes } from './RegistroImagenes'
 import { RegistroProductos } from './RegistroProductos'
 import { RegistroVuelos } from './RegistroVuelos'
 
@@ -46,6 +47,7 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
       producto: '',
       dosis: '',
       productos: productosDe(previo).map((p) => ({ ...p })),
+      imagenes: previo.imagenes ? [...previo.imagenes] : [],
       condiciones: previo.condiciones,
       baterias: previo.baterias || BATERIAS_POR_DEFECTO,
       ha: previo.ha,
@@ -66,6 +68,7 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
     producto: '',
     dosis: '',
     productos: [],
+    imagenes: [],
     condiciones: '',
     baterias: BATERIAS_POR_DEFECTO,
     ha: String(Math.round(lote.ha * 10) / 10),
@@ -112,6 +115,9 @@ export function FormTrabajo({
   }
   function setProductos(productos: ProductoAplicado[]) {
     setD((prev) => ({ ...prev, productos }))
+  }
+  function setImagenes(imagenes: string[]) {
+    setD((prev) => ({ ...prev, imagenes }))
   }
   function cambiarEquipo(nuevoEquipo: string) {
     setD((prev) => {
@@ -292,6 +298,9 @@ export function FormTrabajo({
               )}
             </>
           )}
+
+          <div className="separador">Mapa de vuelo</div>
+          <RegistroImagenes imagenes={d.imagenes ?? []} onChange={setImagenes} />
 
           <div className="separador">
             Plata (esto no sale en el informe del cliente)

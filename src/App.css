@@ -623,6 +623,38 @@
   font-weight: 600;
 }
 
+#imagenes-caja {
+  grid-column: 1 / -1;
+}
+.imagenes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.imagen-item {
+  position: relative;
+}
+.imagen-item img {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--linea);
+}
+.imagen-item .quitar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  background: rgba(23, 28, 20, 0.85);
+  color: #fff;
+  border: 1px solid var(--linea);
+  border-radius: 50%;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 #preview {
   grid-column: 1 / -1;
   background: var(--tierra-2);
