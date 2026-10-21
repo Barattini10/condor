@@ -1,9 +1,9 @@
 /**
  * Procesa una imagen subida desde el formulario (foto o archivo): recorta los
- * márgenes negros parejos (las capturas del joystick suelen mostrar el mapa
- * en un recuadro chico sobre fondo negro propio de la app), la redimensiona
- * si hace falta y la comprime como JPEG. Todo con el canvas del navegador,
- * sin librerías.
+ * márgenes de color parejo (las capturas de la app del dron suelen mostrar
+ * el mapa en un recuadro chico rodeado de fondo sólido — negro en algunas
+ * pantallas, blanco en otras), la redimensiona si hace falta y la comprime
+ * como JPEG. Todo con el canvas del navegador, sin librerías.
  */
 
 import type { ImagenAdjunta } from '../tipos'
@@ -11,55 +11,86 @@ import type { ImagenAdjunta } from '../tipos'
 const ANCHO_MAXIMO = 1600
 const CALIDAD_JPEG = 0.8
 
-/** Un canal (r/g/b) por debajo de esto cuenta como "negro". */
-const UMBRAL_NEGRO = 14
+/** Diferencia máxima por canal (r/g/b) para considerar "el mismo color" que el borde. */
+const UMBRAL_COLOR = 14
 
-function filaEsNegra(datos: Uint8ClampedArray, ancho: number, y: number): boolean {
+/**
+ * Fracción de píxeles de una fila/columna que puede NO matchear el color de
+ * fondo sin que deje de contarse como "borde". Algunas capturas tienen
+ * marquitas sueltas (puntos rojos de GPS, íconos) sobre el fondo; sin esta
+ * tolerancia, una sola marca en el borde frena el recorte ahí mismo.
+ */
+const TOLERANCIA_RUIDO = 0.02
+
+type ColorRGB = [number, number, number]
+
+function colorParecido(datos: Uint8ClampedArray, i: number, color: ColorRGB): boolean {
+  return (
+    Math.abs(datos[i] - color[0]) <= UMBRAL_COLOR &&
+    Math.abs(datos[i + 1] - color[1]) <= UMBRAL_COLOR &&
+    Math.abs(datos[i + 2] - color[2]) <= UMBRAL_COLOR
+  )
+}
+
+function filaEsDelColor(
+  datos: Uint8ClampedArray,
+  ancho: number,
+  y: number,
+  color: ColorRGB,
+): boolean {
   const inicio = y * ancho * 4
+  const limite = ancho * TOLERANCIA_RUIDO
+  let malos = 0
   for (let x = 0; x < ancho; x++) {
-    const i = inicio + x * 4
-    if (datos[i] > UMBRAL_NEGRO || datos[i + 1] > UMBRAL_NEGRO || datos[i + 2] > UMBRAL_NEGRO) {
-      return false
+    if (!colorParecido(datos, inicio + x * 4, color)) {
+      malos++
+      if (malos > limite) return false
     }
   }
   return true
 }
 
-function columnaEsNegra(
+function columnaEsDelColor(
   datos: Uint8ClampedArray,
   ancho: number,
   alto: number,
   x: number,
+  color: ColorRGB,
 ): boolean {
+  const limite = alto * TOLERANCIA_RUIDO
+  let malos = 0
   for (let y = 0; y < alto; y++) {
-    const i = (y * ancho + x) * 4
-    if (datos[i] > UMBRAL_NEGRO || datos[i + 1] > UMBRAL_NEGRO || datos[i + 2] > UMBRAL_NEGRO) {
-      return false
+    if (!colorParecido(datos, (y * ancho + x) * 4, color)) {
+      malos++
+      if (malos > limite) return false
     }
   }
   return true
 }
 
 /**
- * Si el canvas tiene franjas negras parejas en algún borde (de punta a
- * punta), devuelve uno nuevo recortado a donde empieza contenido real. Si no
- * hay nada para recortar, devuelve el mismo canvas.
+ * Si el canvas tiene franjas de un color sólido parejo en algún borde (de
+ * punta a punta), devuelve uno nuevo recortado a donde empieza contenido
+ * real. El color de referencia se toma de la esquina superior izquierda, así
+ * que sirve tanto para fondo negro como blanco (o cualquier otro). Si no hay
+ * nada para recortar, devuelve el mismo canvas.
  */
-function recortarMargenesNegros(canvas: HTMLCanvasElement): HTMLCanvasElement {
+function recortarMargenesUniformes(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
   const ancho = canvas.width
   const alto = canvas.height
   const { data } = ctx.getImageData(0, 0, ancho, alto)
+  const color: ColorRGB = [data[0], data[1], data[2]]
 
   let arriba = 0
   let abajo = alto - 1
   let izq = 0
   let der = ancho - 1
-  while (arriba < abajo && filaEsNegra(data, ancho, arriba)) arriba++
-  while (abajo > arriba && filaEsNegra(data, ancho, abajo)) abajo--
-  while (izq < der && columnaEsNegra(data, ancho, alto, izq)) izq++
-  while (der > izq && columnaEsNegra(data, ancho, alto, der)) der--
+  while (arriba < abajo && filaEsDelColor(data, ancho, arriba, color)) arriba++
+  while (abajo > arriba && filaEsDelColor(data, ancho, abajo, color)) abajo--
+  while (izq < der && columnaEsDelColor(data, ancho, alto, izq, color)) izq++
+  while (der > izq && columnaEsDelColor(data, ancho, alto, der, color)) der--
 
   const w = der - izq + 1
   const h = abajo - arriba + 1
@@ -91,8 +122,8 @@ export function procesarImagen(file: File): Promise<ImagenAdjunta> {
       }
       ctxOriginal.drawImage(img, 0, 0)
 
-      // 2) Recortar los márgenes negros parejos, si los hay.
-      const recortado = recortarMargenesNegros(original)
+      // 2) Recortar los márgenes de color sólido parejo, si los hay.
+      const recortado = recortarMargenesUniformes(original)
 
       // 3) Redimensionar (si hace falta) y comprimir a JPEG, con fondo
       // blanco por si el original tenía transparencia (PNG con bordes
