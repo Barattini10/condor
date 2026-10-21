@@ -10,12 +10,12 @@
 import type { TipoTrabajo } from '../tipos'
 
 export interface UnidadesTrabajo {
-  /** Muestra el campo Producto. */
+  /** Muestra la sección de productos (lista, con dosis por fila). */
   producto: boolean
-  /** Muestra el campo Dosis. */
-  dosis: boolean
-  /** Unidad fija de la dosis: 'l/ha' o 'kg/ha'. */
-  dosisUnidad: string
+  /** Unidades que se pueden elegir para la dosis de cada producto. */
+  unidadesDosis: string[]
+  /** Unidad por defecto: fila nueva, y para migrar un producto viejo (texto suelto). */
+  dosisUnidadPorDefecto: string
   /** Calcula y muestra el caudal real. */
   caudal: boolean
   /** Unidad del caudal. */
@@ -32,8 +32,8 @@ export interface UnidadesTrabajo {
 
 const PULVERIZACION: UnidadesTrabajo = {
   producto: true,
-  dosis: true,
-  dosisUnidad: 'l/ha',
+  unidadesDosis: ['L/ha', 'cc/ha'],
+  dosisUnidadPorDefecto: 'L/ha',
   caudal: true,
   caudalUnidad: 'l/ha',
   insumo: true,
@@ -42,10 +42,23 @@ const PULVERIZACION: UnidadesTrabajo = {
   insumoManualLabel: 'Litros de caldo',
 }
 
-const SOLIDO: UnidadesTrabajo = {
+const SIEMBRA: UnidadesTrabajo = {
   producto: true,
-  dosis: true,
-  dosisUnidad: 'kg/ha',
+  unidadesDosis: ['kg/ha', 'g/ha'],
+  dosisUnidadPorDefecto: 'kg/ha',
+  caudal: false,
+  caudalUnidad: '',
+  insumo: true,
+  insumoColumna: 'kg',
+  insumoTotal: 'kg aplicados',
+  insumoManualLabel: 'Kg aplicados',
+}
+
+/** A diferencia de Siembra, la fertilización puede ser sólida o foliar líquida. */
+const FERTILIZACION: UnidadesTrabajo = {
+  producto: true,
+  unidadesDosis: ['kg/ha', 'g/ha', 'L/ha', 'cc/ha'],
+  dosisUnidadPorDefecto: 'kg/ha',
   caudal: false,
   caudalUnidad: '',
   insumo: true,
@@ -56,8 +69,8 @@ const SOLIDO: UnidadesTrabajo = {
 
 const MAPEO: UnidadesTrabajo = {
   producto: false,
-  dosis: false,
-  dosisUnidad: '',
+  unidadesDosis: [],
+  dosisUnidadPorDefecto: '',
   caudal: false,
   caudalUnidad: '',
   insumo: false,
@@ -69,8 +82,9 @@ const MAPEO: UnidadesTrabajo = {
 export function unidadesDe(tipo: TipoTrabajo): UnidadesTrabajo {
   switch (tipo) {
     case 'Siembra':
+      return SIEMBRA
     case 'Fertilización':
-      return SOLIDO
+      return FERTILIZACION
     case 'Mapeo':
       return MAPEO
     default:

@@ -417,20 +417,6 @@
   outline-offset: 0;
   border-color: var(--verde);
 }
-.con-unidad {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.con-unidad input {
-  flex: 1;
-  min-width: 0;
-}
-.con-unidad span {
-  color: var(--gris);
-  font-size: 13px;
-  white-space: nowrap;
-}
 .separador {
   grid-column: 1 / -1;
   color: var(--verde-claro);
@@ -498,6 +484,78 @@
   background: var(--tierra-2);
   color: var(--crema);
   border: 1px solid var(--linea);
+}
+
+#productos-caja {
+  grid-column: 1 / -1;
+}
+.producto-fila {
+  border-top: 1px solid var(--linea);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+.producto-fila:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.producto-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.producto-top input {
+  flex: 1;
+  min-width: 0;
+  background: var(--tierra-2);
+  border: 1px solid var(--linea);
+  border-radius: 5px;
+  color: var(--crema);
+  padding: 9px;
+  font-size: 14px;
+}
+.producto-top .quitar {
+  background: none;
+  border: none;
+  color: var(--gris);
+  font-size: 16px;
+  cursor: pointer;
+}
+.producto-datos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.producto-datos input,
+.producto-datos select {
+  background: var(--tierra-2);
+  border: 1px solid var(--linea);
+  border-radius: 5px;
+  color: var(--crema);
+  padding: 8px;
+  font-size: 14px;
+}
+.producto-datos input {
+  width: 78px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.producto-total {
+  margin-left: auto;
+  text-align: right;
+}
+.producto-total span {
+  display: block;
+  color: var(--gris);
+  font-size: 10.5px;
+  text-transform: uppercase;
+}
+.producto-total b {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 #vuelos-caja {

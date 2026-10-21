@@ -14,7 +14,6 @@ import {
   n2,
   nha,
   num,
-  numeroTexto,
   tiempo,
 } from '../lib/formato'
 import {
@@ -26,6 +25,7 @@ import {
 } from '../lib/calculos'
 import { unidadesDe } from '../lib/unidades'
 import { equipoDe } from '../lib/equipos'
+import { productosDe, totalProducto } from '../lib/productos'
 
 /** Datos de contacto del pie del informe. Cambiar acá y listo. */
 const CONTACTO = 'Cóndor Agro Integral · +54 9 3329-601189 · @condoragrointegral'
@@ -75,7 +75,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
   const mi = minTrabajo(t)
   const li = litrosTrabajo(t)
   const cr = caudalReal(t)
-  const dosisN = numeroTexto(t.dosis)
+  const productos = productosDe(t)
   const equipo = equipoDe(t)
   const nBaterias = num(t.baterias) > 0 ? Math.round(num(t.baterias)) : BATERIAS_POR_DEFECTO
   const insumoTh =
@@ -92,6 +92,23 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
         `<td class="d">${nha(vha)}</td><td class="d">${n2(vmin)}</td>` +
         (u.insumo ? `<td class="d">${vli ? n2(vli) : '—'}</td>` : '') +
         `</tr>`
+      )
+    })
+    .join('')
+
+  const filasProductos = productos
+    .map((p) => {
+      const tot = totalProducto(ha, p)
+      const texto = tot.valor
+        ? `${n2(tot.valor)} ${tot.unidad}` +
+          (tot.equivalente
+            ? ` (${n2(tot.equivalente.valor)} ${tot.equivalente.unidad})`
+            : '')
+        : '—'
+      return (
+        `<tr><td>${esc(p.nombre)}</td>` +
+        `<td class="d">${n2(num(p.dosis))} ${esc(p.unidad)}</td>` +
+        `<td class="d">${texto}</td></tr>`
       )
     })
     .join('')
@@ -121,6 +138,8 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     'table{width:100%;border-collapse:collapse;margin-top:4px;font-size:13px}' +
     'th{text-align:right;font-size:10.5px;color:#6b7a63;font-weight:600;border-bottom:1px solid #40673b;padding:0 7px 5px}' +
     'th:first-child,th:nth-child(2){text-align:center}' +
+    '.mezcla th:nth-child(1),.mezcla td:nth-child(1){text-align:left}' +
+    '.mezcla th:nth-child(2){text-align:right}' +
     'td{padding:6px 7px;border-bottom:1px solid #e6ebe3;font-variant-numeric:tabular-nums}' +
     'td.c{text-align:center;color:#6b7a63}td.d{text-align:right}' +
     'tfoot td{font-weight:700;border-top:2px solid #40673b;border-bottom:none;background:#f4f7f2}' +
@@ -141,8 +160,6 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     dato('Tipo', esc(t.tipo)) +
     dato('Cultivo', esc(t.cultivo)) +
     dato('Superficie aplicada', `${nha(ha)} ha`) +
-    dato('Producto', u.producto ? esc(t.producto) : '') +
-    dato('Dosis', u.dosis && dosisN ? `${n2(num(dosisN))} ${u.dosisUnidad}` : '') +
     dato('Caudal aplicado', u.caudal && cr ? `${n2(cr)} ${u.caudalUnidad}` : '') +
     dato(
       u.insumoColumna === 'kg' ? 'Total aplicado' : 'Caldo total',
@@ -150,6 +167,11 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     ) +
     dato('Condiciones', esc(t.condiciones)) +
     '</div>' +
+    (u.producto && productos.length
+      ? '<h2>Mezcla aplicada</h2><table class="mezcla"><thead><tr>' +
+        '<th>Producto</th><th>Dosis/ha</th><th>Total aplicado</th>' +
+        `</tr></thead><tbody>${filasProductos}</tbody></table>`
+      : '') +
     '<h2>Operación</h2><div class="datos">' +
     dato('Vuelos', vs.length || '') +
     dato('Baterías', vs.length || '') +

@@ -23,6 +23,15 @@ export interface Vuelo {
   litros: string
 }
 
+/** Un producto dentro de la mezcla aplicada en un trabajo, con su dosis. */
+export interface ProductoAplicado {
+  nombre: string
+  /** Dosis por hectárea, como número (texto). La unidad es independiente. */
+  dosis: string
+  /** 'L/ha' | 'cc/ha' | 'kg/ha' | 'g/ha', según lo que permita el tipo. */
+  unidad: string
+}
+
 export interface Gastos {
   quimico: string
   combustible: string
@@ -55,9 +64,14 @@ export interface Trabajo {
   cultivo: string
   /** Drone con el que se hizo el trabajo (ej. "DJI Agras T100", "Mavic 3M"). */
   equipo: string
+  /** @deprecated Reemplazado por `productos`. Se conserva solo para leer
+   * trabajos viejos — ver lib/productos.ts (`productosDe`). No se vuelve a
+   * escribir desde el formulario. */
   producto: string
-  /** Dosis como número (texto). La unidad (l/ha o kg/ha) sale del tipo. */
+  /** @deprecated Ídem `producto`. */
   dosis: string
+  /** La mezcla aplicada: un producto por fila, con su dosis y unidad. */
+  productos?: ProductoAplicado[]
   condiciones: string
   /** Cantidad de baterías en rotación. Se usa para ciclar el nº de batería por vuelo. */
   baterias: string

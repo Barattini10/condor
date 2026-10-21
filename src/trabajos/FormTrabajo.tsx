@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { useBitacora, type DatosTrabajo } from '../datos/bitacora-context'
-import type { Gastos, TipoTrabajo, Trabajo, Vuelo } from '../tipos'
-import { costoTotal, margen, margenHa } from '../lib/calculos'
+import type { Gastos, ProductoAplicado, TipoTrabajo, Trabajo, Vuelo } from '../tipos'
+import { costoTotal, haTrabajo, margen, margenHa } from '../lib/calculos'
 import { EQUIPOS, EQUIPO_POR_DEFECTO } from '../lib/equipos'
-import { hoyISO, num, numeroTexto, plata } from '../lib/formato'
+import { hoyISO, num, plata } from '../lib/formato'
+import { productosDe } from '../lib/productos'
 import { unidadesDe } from '../lib/unidades'
+import { RegistroProductos } from './RegistroProductos'
 import { RegistroVuelos } from './RegistroVuelos'
 
 const TIPOS: TipoTrabajo[] = [
@@ -39,8 +41,11 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
       tipo: previo.tipo,
       cultivo: previo.cultivo,
       equipo: previo.equipo || EQUIPO_POR_DEFECTO,
-      producto: previo.producto,
-      dosis: numeroTexto(previo.dosis),
+      // producto/dosis quedan vacíos a propósito: lo que había ahí (viejo o
+      // migrado) ya está reflejado en `productos`.
+      producto: '',
+      dosis: '',
+      productos: productosDe(previo).map((p) => ({ ...p })),
       condiciones: previo.condiciones,
       baterias: previo.baterias || BATERIAS_POR_DEFECTO,
       ha: previo.ha,
@@ -60,6 +65,7 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
     equipo: EQUIPO_POR_DEFECTO,
     producto: '',
     dosis: '',
+    productos: [],
     condiciones: '',
     baterias: BATERIAS_POR_DEFECTO,
     ha: String(Math.round(lote.ha * 10) / 10),
@@ -104,6 +110,9 @@ export function FormTrabajo({
   function setVuelos(v: Vuelo[]) {
     setD((prev) => ({ ...prev, vuelos: v }))
   }
+  function setProductos(productos: ProductoAplicado[]) {
+    setD((prev) => ({ ...prev, productos }))
+  }
   function cambiarEquipo(nuevoEquipo: string) {
     setD((prev) => {
       let tipo = prev.tipo
@@ -126,19 +135,22 @@ export function FormTrabajo({
       updatedAt: '',
       deleted: false,
     }
-    return { costo: costoTotal(t), mg: margen(t), mgHa: margenHa(t) }
+    return {
+      ha: haTrabajo(t),
+      costo: costoTotal(t),
+      mg: margen(t),
+      mgHa: margenHa(t),
+    }
   }, [d, loteId])
 
   async function guardar() {
     if (guardando) return
     setGuardando(true)
-    // Producto y Dosis NO se borran aunque el tipo actual los oculte: si
-    // cambiás de equipo/tipo y volvés, quedan como estaban. La dosis sí se
-    // normaliza a número limpio. El total manual de insumo sigue
-    // limpiándose cuando el tipo no lo usa (litros de Mapeo no aplican).
+    // El total manual de insumo se limpia cuando el tipo no lo usa (litros de
+    // Mapeo no aplican). producto/dosis (viejos) ya quedaron vacíos desde que
+    // se cargó el formulario — lo vigente es `productos`.
     const limpio: DatosTrabajo = {
       ...d,
-      dosis: numeroTexto(d.dosis),
       litros: u.insumo ? d.litros : '',
     }
     await guardarTrabajo(loteId, trabajoId, limpio)
@@ -213,32 +225,6 @@ export function FormTrabajo({
               onChange={(e) => set('ha', e.target.value)}
             />
           </div>
-          {u.producto && (
-            <div className="campo ancho">
-              <label htmlFor="t-producto">Producto</label>
-              <input
-                id="t-producto"
-                value={d.producto}
-                onChange={(e) => set('producto', e.target.value)}
-                placeholder="Togar Max + Rizospray Integrum"
-              />
-            </div>
-          )}
-          {u.dosis && (
-            <div className="campo">
-              <label htmlFor="t-dosis">Dosis</label>
-              <div className="con-unidad">
-                <input
-                  id="t-dosis"
-                  inputMode="decimal"
-                  value={d.dosis}
-                  onChange={(e) => set('dosis', e.target.value)}
-                  placeholder="0"
-                />
-                <span>{u.dosisUnidad}</span>
-              </div>
-            </div>
-          )}
           <div className="campo">
             <label htmlFor="t-clima">Condiciones</label>
             <input
@@ -248,6 +234,18 @@ export function FormTrabajo({
               placeholder="22°C, 8 km/h SE"
             />
           </div>
+
+          {u.producto && (
+            <>
+              <div className="separador">Mezcla aplicada</div>
+              <RegistroProductos
+                productos={d.productos ?? []}
+                unidades={u}
+                ha={preview.ha}
+                onChange={setProductos}
+              />
+            </>
+          )}
 
           <div className="separador">Registro de vuelos</div>
           <div className="campo">

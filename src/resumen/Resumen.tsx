@@ -11,9 +11,10 @@ import {
   minTrabajo,
   vuelosValidos,
 } from '../lib/calculos'
-import { fechaCorta, nha, num, numeroTexto, plata } from '../lib/formato'
+import { fechaCorta, n2, nha, num, plata } from '../lib/formato'
 import { unidadesDe } from '../lib/unidades'
 import { agruparPorEquipo, equipoDe } from '../lib/equipos'
+import { productosDe } from '../lib/productos'
 
 /**
  * Número -> texto para el CSV: 2 decimales, con punto (no coma), sin
@@ -127,7 +128,7 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
     const filas: (string | number)[][] = [
       [
         'fecha', 'lote', 'establecimiento', 'tipo', 'equipo', 'cultivo', 'ha',
-        'producto', 'dosis', 'dosis_unidad', 'caudal_real', 'cantidad',
+        'productos', 'caudal_real', 'cantidad',
         'cantidad_unidad', 'vuelos', 'minutos', 'facturado',
         'quimico', 'combustible', 'viaticos', 'otros', 'margen', 'margen_ha',
       ],
@@ -136,11 +137,12 @@ export function Resumen({ onVolver }: { onVolver: () => void }) {
       const l = lotes.find((x) => x.id === t.loteId)
       const g = t.gastos
       const u = unidadesDe(t.tipo)
-      const dosisN = numeroTexto(t.dosis)
+      const textoProductos = productosDe(t)
+        .map((p) => `${p.nombre} ${n2(num(p.dosis))} ${p.unidad}`)
+        .join(' | ')
       filas.push([
         t.fecha, l?.nombre ?? '', l?.establecimiento ?? '', t.tipo, equipoDe(t),
-        t.cultivo, numCSV(haTrabajo(t)), u.producto ? t.producto : '',
-        u.dosis && dosisN ? numCSV(num(dosisN)) : '', u.dosis ? u.dosisUnidad : '',
+        t.cultivo, numCSV(haTrabajo(t)), u.producto ? textoProductos : '',
         u.caudal ? numCSV(caudalReal(t)) : '',
         u.insumo ? numCSV(litrosTrabajo(t)) : '', u.insumo ? u.insumoColumna : '',
         vuelosValidos(t).length, numCSV(minTrabajo(t)),

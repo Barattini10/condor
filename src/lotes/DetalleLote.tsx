@@ -16,12 +16,12 @@ import {
   n2,
   nha,
   num,
-  numeroTexto,
   plata,
   tiempo,
 } from '../lib/formato'
 import { unidadesDe } from '../lib/unidades'
 import { agruparPorEquipo } from '../lib/equipos'
+import { productosDe } from '../lib/productos'
 
 export function DetalleLote({
   loteId,
@@ -214,16 +214,15 @@ export function DetalleLote({
             const m = minTrabajo(t)
             const mg = margen(t)
             const cr = caudalReal(t)
-            const dosisN = numeroTexto(t.dosis)
+            const productos = productosDe(t)
 
             const d1: string[] = []
             if (t.cultivo) d1.push(t.cultivo)
-            if (u.producto && t.producto) {
+            if (u.producto && productos.length) {
               d1.push(
-                t.producto +
-                  (u.dosis && dosisN
-                    ? ' · ' + n2(num(dosisN)) + ' ' + u.dosisUnidad
-                    : ''),
+                productos
+                  .map((p) => `${p.nombre} ${n2(num(p.dosis))} ${p.unidad}`)
+                  .join(', '),
               )
             }
 
