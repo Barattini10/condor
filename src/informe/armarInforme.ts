@@ -4,8 +4,7 @@
  * offline). No incluye datos de plata. Portado del prototipo.
  */
 
-import type { Lote, PuntoLatLng, Trabajo } from '../tipos'
-import { centro } from '../lib/geo'
+import type { Lote, Trabajo } from '../tipos'
 import {
   esc,
   fechaCorta,
@@ -33,35 +32,6 @@ const CONTACTO = 'Cóndor Agro Integral · +54 9 3329-601189 · @condoragrointeg
 /** Cantidad de baterías por defecto para el ciclo del nº de batería. */
 const BATERIAS_POR_DEFECTO = 3
 
-/** Dibujo esquemático del lote, normalizado a un cuadro de 100x100. */
-function svgLote(pts: PuntoLatLng[]): string {
-  if (!pts || pts.length < 3) return ''
-  const lat0 = centro(pts)[0]
-  const k = Math.cos((lat0 * Math.PI) / 180)
-  const xs = pts.map((p) => p[1] * k)
-  const ys = pts.map((p) => -p[0])
-  const x0 = Math.min(...xs)
-  const x1 = Math.max(...xs)
-  const y0 = Math.min(...ys)
-  const y1 = Math.max(...ys)
-  const w = x1 - x0 || 1
-  const h = y1 - y0 || 1
-  const escala = 100 / Math.max(w, h)
-  const ox = (100 - w * escala) / 2
-  const oy = (100 - h * escala) / 2
-  const d =
-    pts
-      .map((p, i) => {
-        const x = (p[1] * k - x0) * escala + ox
-        const y = (-p[0] - y0) * escala + oy
-        return `${i ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`
-      })
-      .join(' ') + ' Z'
-  return (
-    '<svg viewBox="-4 -4 108 108" width="120" height="120" xmlns="http://www.w3.org/2000/svg">' +
-    `<path d="${d}" fill="#d7e5d0" stroke="#40673b" stroke-width="2" stroke-linejoin="round"/></svg>`
-  )
-}
 
 export interface Informe {
   html: string
@@ -129,6 +99,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     '.cab .der b{display:block;font-size:15px;color:#20261c}' +
     'h2{font-size:12px;color:#40673b;margin:24px 0 10px;font-weight:700;border-bottom:1px solid #d7e5d0;padding-bottom:5px}' +
     '.ident{display:flex;gap:18px;align-items:center;background:#f4f7f2;border-radius:6px;padding:14px 16px}' +
+    '.logo-espacio{flex:0 0 auto;width:120px;height:120px}' +
     '.ident .txt{flex:1}' +
     '.ident .txt h1{font-size:20px;margin:0 0 3px;letter-spacing:-.02em}' +
     '.ident .txt p{margin:0;color:#6b7a63;font-size:13px}' +
@@ -151,7 +122,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     '<button class="imprimir" onclick="window.print()">Imprimir o guardar en PDF</button>' +
     `<div class="cab"><div class="marca">Cóndor Agro<small>Aplicaciones aéreas de precisión · Baradero, Bs. As.</small></div>` +
     `<div class="der"><b>Informe de aplicación</b></div></div>` +
-    `<div class="ident">${svgLote(lote.puntos || [])}` +
+    `<div class="ident"><div class="logo-espacio"></div>` +
     `<div class="txt"><h1>${esc(lote.nombre)}</h1>` +
     `<p>${esc(lote.establecimiento || '')}${
       lote.ha ? ` · superficie del lote ${nha(lote.ha)} ha` : ''

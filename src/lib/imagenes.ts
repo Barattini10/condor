@@ -28,6 +28,12 @@ export function procesarImagen(file: File): Promise<string> {
         reject(new Error('No se pudo procesar la imagen.'))
         return
       }
+      // JPEG no tiene transparencia: si no se rellena antes, el navegador
+      // convierte lo transparente del original (PNG con bordes redondeados,
+      // recuadros de la interfaz) en NEGRO. Blanco combina con la hoja del
+      // informe, así no se nota ningún borde.
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, ancho, alto)
       ctx.drawImage(img, 0, 0, ancho, alto)
       resolve(canvas.toDataURL('image/jpeg', CALIDAD_JPEG))
     }
