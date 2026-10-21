@@ -1,14 +1,15 @@
 /** Capturas del mapa de vuelo adjuntas a un trabajo: agregar, ver, sacar. */
 
 import { useRef, useState, type ChangeEvent } from 'react'
+import type { ImagenAdjunta } from '../tipos'
 import { procesarImagen } from '../lib/imagenes'
 
 export function RegistroImagenes({
   imagenes,
   onChange,
 }: {
-  imagenes: string[]
-  onChange: (imgs: string[]) => void
+  imagenes: ImagenAdjunta[]
+  onChange: (imgs: ImagenAdjunta[]) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [procesando, setProcesando] = useState(false)
@@ -40,9 +41,9 @@ export function RegistroImagenes({
     <div id="imagenes-caja">
       {imagenes.length > 0 && (
         <div className="imagenes-lista">
-          {imagenes.map((src, i) => (
+          {imagenes.map((img, i) => (
             <div className="imagen-item" key={i}>
-              <img src={src} alt={`Mapa de vuelo ${i + 1}`} />
+              <img src={img.src} alt={`Mapa de vuelo ${i + 1}`} />
               <button
                 className="quitar"
                 onClick={() => quitar(i)}

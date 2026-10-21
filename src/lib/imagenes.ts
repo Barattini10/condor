@@ -6,6 +6,8 @@
  * sin librerías.
  */
 
+import type { ImagenAdjunta } from '../tipos'
+
 const ANCHO_MAXIMO = 1600
 const CALIDAD_JPEG = 0.8
 
@@ -70,7 +72,7 @@ function recortarMargenesNegros(canvas: HTMLCanvasElement): HTMLCanvasElement {
   return recortado
 }
 
-export function procesarImagen(file: File): Promise<string> {
+export function procesarImagen(file: File): Promise<ImagenAdjunta> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const img = new Image()
@@ -111,7 +113,7 @@ export function procesarImagen(file: File): Promise<string> {
       ctxFinal.fillStyle = '#ffffff'
       ctxFinal.fillRect(0, 0, ancho, alto)
       ctxFinal.drawImage(recortado, 0, 0, ancho, alto)
-      resolve(final.toDataURL('image/jpeg', CALIDAD_JPEG))
+      resolve({ src: final.toDataURL('image/jpeg', CALIDAD_JPEG), ancho, alto })
     }
 
     img.onerror = () => {

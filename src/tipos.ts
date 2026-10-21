@@ -23,6 +23,19 @@ export interface Vuelo {
   litros: string
 }
 
+/**
+ * Una imagen adjunta a un trabajo (captura del mapa de vuelo), ya
+ * redimensionada/comprimida. Se guardan ancho/alto para poder mostrarla en el
+ * informe con su proporción real sin depender de cómo cada visor de PDF
+ * decide dibujar una <img> (algunos la imprimen a tamaño físico, ignorando
+ * el ancho que se le ponga por CSS).
+ */
+export interface ImagenAdjunta {
+  src: string
+  ancho: number
+  alto: number
+}
+
 /** Un producto dentro de la mezcla aplicada en un trabajo, con su dosis. */
 export interface ProductoAplicado {
   nombre: string
@@ -72,8 +85,8 @@ export interface Trabajo {
   dosis: string
   /** La mezcla aplicada: un producto por fila, con su dosis y unidad. */
   productos?: ProductoAplicado[]
-  /** Capturas del mapa de vuelo (JPEG, ya redimensionadas/comprimidas). */
-  imagenes?: string[]
+  /** Capturas del mapa de vuelo. */
+  imagenes?: ImagenAdjunta[]
   condiciones: string
   /** Cantidad de baterías en rotación. Se usa para ciclar el nº de batería por vuelo. */
   baterias: string

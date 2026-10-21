@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from 'react'
 import { useBitacora, type DatosTrabajo } from '../datos/bitacora-context'
-import type { Gastos, ProductoAplicado, TipoTrabajo, Trabajo, Vuelo } from '../tipos'
+import type {
+  Gastos,
+  ImagenAdjunta,
+  ProductoAplicado,
+  TipoTrabajo,
+  Trabajo,
+  Vuelo,
+} from '../tipos'
 import { costoTotal, haTrabajo, margen, margenHa } from '../lib/calculos'
 import { EQUIPOS, EQUIPO_POR_DEFECTO } from '../lib/equipos'
 import { hoyISO, num, plata } from '../lib/formato'
@@ -47,7 +54,7 @@ function datosIniciales(lote: { ha: number }, previo: Trabajo | undefined): Dato
       producto: '',
       dosis: '',
       productos: productosDe(previo).map((p) => ({ ...p })),
-      imagenes: previo.imagenes ? [...previo.imagenes] : [],
+      imagenes: previo.imagenes ? previo.imagenes.map((img) => ({ ...img })) : [],
       condiciones: previo.condiciones,
       baterias: previo.baterias || BATERIAS_POR_DEFECTO,
       ha: previo.ha,
@@ -116,7 +123,7 @@ export function FormTrabajo({
   function setProductos(productos: ProductoAplicado[]) {
     setD((prev) => ({ ...prev, productos }))
   }
-  function setImagenes(imagenes: string[]) {
+  function setImagenes(imagenes: ImagenAdjunta[]) {
     setD((prev) => ({ ...prev, imagenes }))
   }
   function cambiarEquipo(nuevoEquipo: string) {

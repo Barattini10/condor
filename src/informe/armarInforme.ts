@@ -116,8 +116,7 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     'tfoot td{font-weight:700;border-top:2px solid #40673b;border-bottom:none;background:#f4f7f2}' +
     '.pie{margin-top:26px;padding-top:12px;border-top:1px solid #d7e5d0;font-size:11px;color:#8a9682}' +
     '.imprimir{background:#40673b;color:#fff;border:none;border-radius:5px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:18px;font-family:inherit}' +
-    '@media print{.imprimir{display:none}body{padding:0}' +
-    'img{width:178mm!important;max-width:178mm!important;height:auto!important}}' +
+    '@media print{.imprimir{display:none}body{padding:0}}' +
     '</style></head><body>' +
     '<button class="imprimir" onclick="window.print()">Imprimir o guardar en PDF</button>' +
     `<div class="cab"><div class="marca">Cóndor Agro<small>Aplicaciones aéreas de precisión · Baradero, Bs. As.</small></div>` +
@@ -164,13 +163,23 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     (t.imagenes && t.imagenes.length
       ? '<h2>Mapa de aplicación</h2>' +
         t.imagenes
-          .map(
-            (src) =>
-              '<div style="width:100%;margin:8px 0 14px">' +
-              `<img src="${esc(src)}" alt="Mapa de aplicación" ` +
-              'style="display:block;width:100%;max-width:100%;height:auto;border-radius:6px">' +
-              '</div>',
-          )
+          .map((img) => {
+            // La imagen va de fondo de un bloque, no como <img>: algunos
+            // visores de PDF dibujan las <img> a su tamaño físico real e
+            // ignoran el ancho que se les ponga por CSS. Un fondo, en
+            // cambio, se estira siempre al tamaño del bloque que lo
+            // contiene — y ese tamaño sale de un padding en %, que
+            // cualquier motor calcula igual (depende solo del ancho).
+            const proporcion = img.ancho > 0 ? (img.alto / img.ancho) * 100 : 66.7
+            return (
+              '<div role="img" aria-label="Mapa de aplicación" style="' +
+              `width:100%;padding-top:${proporcion.toFixed(2)}%;` +
+              `background-image:url('${esc(img.src)}');` +
+              'background-size:contain;background-repeat:no-repeat;' +
+              'background-position:center;border-radius:6px;' +
+              'margin:8px 0 14px"></div>'
+            )
+          })
           .join('')
       : '') +
     '<div class="pie">' +
