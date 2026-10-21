@@ -10,6 +10,8 @@ import {
   fechaCorta,
   fechaLarga,
   hoyISO,
+  minASeg,
+  minSeg,
   n2,
   nha,
   num,
@@ -55,12 +57,12 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
   const filas = vs
     .map((v, i) => {
       const vha = num(v.ha)
-      const vmin = num(v.min)
+      const vmin = minSeg(v.min)
       const vli = num(v.litros)
       const bateria = v.bateria || (i % nBaterias) + 1
       return (
         `<tr><td class="c">${i + 1}</td><td class="c">${esc(bateria)}</td>` +
-        `<td class="d">${nha(vha)}</td><td class="d">${n2(vmin)}</td>` +
+        `<td class="d">${nha(vha)}</td><td class="d">${vmin ? minASeg(vmin) : '—'}</td>` +
         (u.insumo ? `<td class="d">${vli ? n2(vli) : '—'}</td>` : '') +
         `</tr>`
       )
@@ -153,11 +155,11 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     '</div>' +
     (vs.length
       ? '<h2>Registro de vuelos</h2><table><thead><tr>' +
-        '<th>#</th><th>Batería</th><th>Hectáreas</th><th>Minutos</th>' +
+        '<th>#</th><th>Batería</th><th>Hectáreas</th><th>Tiempo (mm:ss)</th>' +
         (u.insumo ? `<th>${insumoTh}</th>` : '') +
         '</tr></thead>' +
         `<tbody>${filas}</tbody><tfoot><tr><td class="c" colspan="2">Total</td>` +
-        `<td class="d">${nha(ha)}</td><td class="d">${n2(mi)}</td>` +
+        `<td class="d">${nha(ha)}</td><td class="d">${mi ? minASeg(mi) : '—'}</td>` +
         (u.insumo ? `<td class="d">${li ? n2(li) : '—'}</td>` : '') +
         `</tr></tfoot></table>`
       : '') +

@@ -74,6 +74,26 @@ export function tiempo(min: number): string {
   return h > 0 ? `${h} h ${r} min` : `${r} min`
 }
 
+/**
+ * Texto de input de tiempo de vuelo -> minutos (decimal). Acepta "mm:ss"
+ * (como lo muestra el joystick del dron, ej. "10:26" = 10 min 26 seg) y,
+ * para no romper datos viejos, también un número suelto ("45" = 45 min).
+ */
+export function minSeg(v: unknown): number {
+  const s = String(v ?? '').trim()
+  const m = s.match(/^(\d+):([0-5]?\d)$/)
+  if (m) return parseInt(m[1], 10) + parseInt(m[2], 10) / 60
+  return num(s)
+}
+
+/** Minutos (decimal) -> "mm:ss", ej. 10,4333 -> "10:26". */
+export function minASeg(min: number): string {
+  const totalSeg = Math.round(min * 60)
+  const mm = Math.floor(totalSeg / 60)
+  const ss = totalSeg % 60
+  return `${mm}:${String(ss).padStart(2, '0')}`
+}
+
 /** Fecha de hoy en formato "YYYY-MM-DD" (local). */
 export function hoyISO(): string {
   const d = new Date()

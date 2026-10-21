@@ -7,11 +7,11 @@
  */
 
 import type { Trabajo, Vuelo } from '../tipos'
-import { num } from './formato'
+import { minSeg, num } from './formato'
 
 /** Vuelos con algún dato cargado (ignora filas vacías). */
 export function vuelosValidos(t: Trabajo): Vuelo[] {
-  return (t.vuelos || []).filter((v) => num(v.ha) || num(v.min) || num(v.litros))
+  return (t.vuelos || []).filter((v) => num(v.ha) || minSeg(v.min) || num(v.litros))
 }
 
 export function haTrabajo(t: Trabajo): number {
@@ -25,7 +25,7 @@ export function haTrabajo(t: Trabajo): number {
 
 export function minTrabajo(t: Trabajo): number {
   const vs = vuelosValidos(t)
-  const s = vs.reduce((acc, v) => acc + num(v.min), 0)
+  const s = vs.reduce((acc, v) => acc + minSeg(v.min), 0)
   return s > 0 ? s : num(t.minutos)
 }
 

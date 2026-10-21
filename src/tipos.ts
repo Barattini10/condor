@@ -18,6 +18,9 @@ export type TipoTrabajo = 'Pulverización' | 'Siembra' | 'Fertilización' | 'Map
 export interface Vuelo {
   bateria: string
   ha: string
+  /** Tiempo de vuelo en formato "mm:ss" (tal cual lo muestra el joystick del
+   * dron, ej. "10:26"). Datos viejos sin ":" se interpretan como minutos
+   * sueltos — ver lib/formato.ts (`minSeg`). */
   min: string
   /** Cantidad aplicada en el vuelo. Litros o kg según el tipo (ver lib/unidades). */
   litros: string

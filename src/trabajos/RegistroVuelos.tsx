@@ -3,7 +3,7 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import type { Vuelo } from '../tipos'
 import type { UnidadesTrabajo } from '../lib/unidades'
-import { n2, nha, num, tiempo } from '../lib/formato'
+import { minSeg, n2, nha, num, tiempo } from '../lib/formato'
 
 /** Campos de la fila que participan de la navegación con Enter (batería no). */
 type CampoNav = 'ha' | 'min' | 'litros'
@@ -89,7 +89,7 @@ export function RegistroVuelos({
   }
 
   const ha = vuelos.reduce((s, v) => s + num(v.ha), 0)
-  const mi = vuelos.reduce((s, v) => s + num(v.min), 0)
+  const mi = vuelos.reduce((s, v) => s + minSeg(v.min), 0)
   const li = vuelos.reduce((s, v) => s + num(v.litros), 0)
 
   const clase = conInsumo ? '' : ' sin-insumo'
@@ -100,7 +100,7 @@ export function RegistroVuelos({
         <div />
         <div>batería</div>
         <div>ha</div>
-        <div>min</div>
+        <div>min:seg</div>
         {conInsumo && <div>{unidades.insumoColumna}</div>}
         <div />
       </div>
@@ -123,8 +123,7 @@ export function RegistroVuelos({
             />
             <input
               ref={refCampo(i, 'min')}
-              inputMode="decimal"
-              placeholder="min"
+              placeholder="mm:ss"
               value={v.min}
               onChange={(e) => set(i, 'min', e.target.value)}
               onKeyDown={(e) => manejarEnter(e, i, 'min')}
