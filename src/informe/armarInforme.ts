@@ -114,11 +114,10 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
     'td{padding:6px 7px;border-bottom:1px solid #e6ebe3;font-variant-numeric:tabular-nums}' +
     'td.c{text-align:center;color:#6b7a63}td.d{text-align:right}' +
     'tfoot td{font-weight:700;border-top:2px solid #40673b;border-bottom:none;background:#f4f7f2}' +
-    '.mapa-cont{width:100%;margin-top:8px;margin-bottom:14px}' +
-    '.mapa{display:block;width:100%;max-width:100%;height:auto;border-radius:6px}' +
     '.pie{margin-top:26px;padding-top:12px;border-top:1px solid #d7e5d0;font-size:11px;color:#8a9682}' +
     '.imprimir{background:#40673b;color:#fff;border:none;border-radius:5px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:18px;font-family:inherit}' +
-    '@media print{.imprimir{display:none}body{padding:0}}' +
+    '@media print{.imprimir{display:none}body{padding:0}' +
+    'img{width:178mm!important;max-width:178mm!important;height:auto!important}}' +
     '</style></head><body>' +
     '<button class="imprimir" onclick="window.print()">Imprimir o guardar en PDF</button>' +
     `<div class="cab"><div class="marca">Cóndor Agro<small>Aplicaciones aéreas de precisión · Baradero, Bs. As.</small></div>` +
@@ -167,7 +166,10 @@ export function armarInforme(t: Trabajo, lote: Lote): Informe {
         t.imagenes
           .map(
             (src) =>
-              `<div class="mapa-cont"><img class="mapa" src="${esc(src)}" alt="Mapa de aplicación"></div>`,
+              '<div style="width:100%;margin:8px 0 14px">' +
+              `<img src="${esc(src)}" alt="Mapa de aplicación" ` +
+              'style="display:block;width:100%;max-width:100%;height:auto;border-radius:6px">' +
+              '</div>',
           )
           .join('')
       : '') +
