@@ -26,6 +26,13 @@ function esMasNuevo(remoto: { updatedAt: string }, local?: { updatedAt: string }
   return !local || remoto.updatedAt > local.updatedAt
 }
 
+/** Para las subidas a Firestore: no hace falta que la UI espere ni se
+ * trabe por esto (ya quedó guardado en IndexedDB), pero que el error no
+ * desaparezca sin dejar rastro si falla. */
+function avisarSiFalla(err: unknown): void {
+  console.error('No se pudo subir a Firestore:', err)
+}
+
 export function BitacoraProvider({ children }: { children: ReactNode }) {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [trabajos, setTrabajos] = useState<Trabajo[]>([])
@@ -107,7 +114,7 @@ export function BitacoraProvider({ children }: { children: ReactNode }) {
         }
         await db.guardarLote(l)
         setLotes((xs) => [...xs, l])
-        subirLote(l).catch(() => {})
+        subirLote(l).catch(avisarSiFalla)
         return l
       },
 
@@ -117,7 +124,7 @@ export function BitacoraProvider({ children }: { children: ReactNode }) {
         const actualizado: Lote = { ...lote, ...cambios, updatedAt: ahora() }
         await db.guardarLote(actualizado)
         setLotes((xs) => xs.map((l) => (l.id === id ? actualizado : l)))
-        subirLote(actualizado).catch(() => {})
+        subirLote(actualizado).catch(avisarSiFalla)
       },
 
       async borrarLote(id) {
@@ -130,8 +137,8 @@ export function BitacoraProvider({ children }: { children: ReactNode }) {
         if (trabajosBorrados.length) await db.guardarTrabajos(trabajosBorrados)
         setLotes((xs) => xs.filter((l) => l.id !== id))
         setTrabajos((xs) => xs.filter((x) => x.loteId !== id))
-        if (loteBorrado) subirLote(loteBorrado).catch(() => {})
-        trabajosBorrados.forEach((x) => subirTrabajo(x).catch(() => {}))
+        if (loteBorrado) subirLote(loteBorrado).catch(avisarSiFalla)
+        trabajosBorrados.forEach((x) => subirTrabajo(x).catch(avisarSiFalla))
       },
 
       async guardarTrabajo(loteId, trabajoId, d) {
@@ -153,7 +160,7 @@ export function BitacoraProvider({ children }: { children: ReactNode }) {
           copia[i] = t
           return copia
         })
-        subirTrabajo(t).catch(() => {})
+        subirTrabajo(t).catch(avisarSiFalla)
         return t
       },
 
@@ -162,7 +169,7 @@ export function BitacoraProvider({ children }: { children: ReactNode }) {
         const borrado = t && { ...t, deleted: true, updatedAt: ahora() }
         if (borrado) await db.guardarTrabajo(borrado)
         setTrabajos((xs) => xs.filter((x) => x.id !== id))
-        if (borrado) subirTrabajo(borrado).catch(() => {})
+        if (borrado) subirTrabajo(borrado).catch(avisarSiFalla)
       },
 
       exportarBackup() {
@@ -176,8 +183,8 @@ export function BitacoraProvider({ children }: { children: ReactNode }) {
         const fresco = await db.cargarTodo()
         setLotes(fresco.lotes)
         setTrabajos(fresco.trabajos)
-        L.forEach((l) => subirLote(l).catch(() => {}))
-        T.forEach((t) => subirTrabajo(t).catch(() => {}))
+        L.forEach((l) => subirLote(l).catch(avisarSiFalla))
+        T.forEach((t) => subirTrabajo(t).catch(avisarSiFalla))
       },
     }
   }, [lotes, trabajos, cargando])

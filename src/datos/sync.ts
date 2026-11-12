@@ -19,13 +19,28 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore'
 import { db as firestore } from '../lib/firebase'
-import type { Lote, Trabajo } from '../tipos'
+import type { Lote, PuntoLatLng, Trabajo } from '../tipos'
 
 const COL_LOTES = 'lotes'
 const COL_TRABAJOS = 'trabajos'
 
+/** Firestore no permite "listas dentro de listas", y `puntos` es una lista
+ * de pares [lat, lng]. Viaja como lista de {lat, lng} y se arma de vuelta. */
+interface LoteEnFirestore extends Omit<Lote, 'puntos'> {
+  puntos: { lat: number; lng: number }[]
+}
+
+function aFirestore(l: Lote): LoteEnFirestore {
+  return { ...l, puntos: l.puntos.map(([lat, lng]) => ({ lat, lng })) }
+}
+
+function deFirestore(l: LoteEnFirestore): Lote {
+  const puntos: PuntoLatLng[] = l.puntos.map((p) => [p.lat, p.lng])
+  return { ...l, puntos }
+}
+
 export async function subirLote(l: Lote): Promise<void> {
-  await setDoc(doc(firestore, COL_LOTES, l.id), l)
+  await setDoc(doc(firestore, COL_LOTES, l.id), aFirestore(l))
 }
 
 export async function subirTrabajo(t: Trabajo): Promise<void> {
@@ -47,7 +62,7 @@ export function escucharCambios(
   const offLotes = onSnapshot(collection(firestore, COL_LOTES), (snap) => {
     for (const cambio of snap.docChanges()) {
       if (cambio.type === 'removed') continue
-      onLote(cambio.doc.data() as Lote)
+      onLote(deFirestore(cambio.doc.data() as LoteEnFirestore))
     }
   })
   const offTrabajos = onSnapshot(collection(firestore, COL_TRABAJOS), (snap) => {
