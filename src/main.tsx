@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
+import { AuthGate } from './datos/AuthGate.tsx'
 import { BitacoraProvider } from './datos/store.tsx'
 
 // Service worker: deja la app disponible sin señal y se actualiza sola cuando
@@ -11,8 +12,10 @@ registerSW({ immediate: true })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BitacoraProvider>
-      <App />
-    </BitacoraProvider>
+    <AuthGate>
+      <BitacoraProvider>
+        <App />
+      </BitacoraProvider>
+    </AuthGate>
   </StrictMode>,
 )
