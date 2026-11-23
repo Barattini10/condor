@@ -154,6 +154,18 @@
 .lote-tag.virgen {
   color: var(--gris);
 }
+.punto-vertice {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #40673b;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+}
+.punto-vertice:active {
+  cursor: grabbing;
+}
 
 .fab {
   background: var(--verde);

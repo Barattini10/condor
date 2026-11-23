@@ -52,12 +52,15 @@ const MENSAJE_FALLO_UBIC: Record<MotivoFallo, string> = {
 }
 
 export default function App() {
-  const { cargando, lotes, trabajos, lotePorId } = useBitacora()
+  const { cargando, lotes, trabajos, lotePorId, actualizarLote } = useBitacora()
 
   const [vista, setVista] = useState<Vista>({ tipo: 'lotes' })
   const [informe, setInforme] = useState<Informe | null>(null)
   const [modoDibujo, setModoDibujo] = useState(false)
   const [dibujo, setDibujo] = useState({ puntos: 0, ha: 0 })
+  const [edicionForma, setEdicionForma] = useState<
+    { loteId: string; puntos: number; ha: number } | null
+  >(null)
   const [descarga, setDescarga] = useState<ProgresoDescarga | null>(null)
   const [ubicAbierto, setUbicAbierto] = useState(false)
   const [ubicTexto, setUbicTexto] = useState('')
@@ -91,7 +94,10 @@ export default function App() {
   }, [])
 
   const onDibujoProgreso = useCallback(
-    (info: { puntos: number; ha: number }) => setDibujo(info),
+    (info: { puntos: number; ha: number }) => {
+      setDibujo(info)
+      setEdicionForma((e) => (e ? { ...e, ...info } : e))
+    },
     [],
   )
 
@@ -109,6 +115,24 @@ export default function App() {
     mapaRef.current?.cancelarDibujo()
     setModoDibujo(false)
     setDibujo({ puntos: 0, ha: 0 })
+  }
+
+  function empezarEdicionForma(loteId: string) {
+    const lote = lotePorId(loteId)
+    if (!lote) return
+    mapaRef.current?.empezarEdicionForma(lote.puntos)
+    setEdicionForma({ loteId, puntos: lote.puntos.length, ha: lote.ha })
+  }
+  function cancelarEdicionForma() {
+    mapaRef.current?.cancelarEdicionForma()
+    setEdicionForma(null)
+  }
+  async function guardarEdicionForma() {
+    if (!edicionForma) return
+    const r = mapaRef.current?.guardarEdicionForma()
+    if (!r) return
+    await actualizarLote(edicionForma.loteId, { puntos: r.puntos, ha: r.ha })
+    setEdicionForma(null)
   }
 
   function abrirUbicacion() {
@@ -263,6 +287,7 @@ export default function App() {
           lotes={lotes}
           lotesConTrabajos={lotesConTrabajos}
           loteSeleccionadoId={loteSeleccionadoId}
+          loteEditandoId={edicionForma?.loteId ?? null}
           onSeleccionarLote={onSeleccionarLote}
           onDibujoProgreso={onDibujoProgreso}
           onLoteDibujado={onLoteDibujado}
@@ -360,6 +385,24 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {edicionForma && (
+          <div id="modo-dibujo" className="on">
+            <p>
+              Arrastrá los puntos para ajustar el lote. Doble click en un
+              punto para borrarlo. {edicionForma.puntos} puntos ·{' '}
+              {nha(edicionForma.ha)} ha
+            </p>
+            <div className="fila">
+              <button className="fab sec" onClick={cancelarEdicionForma}>
+                Cancelar
+              </button>
+              <button className="fab" onClick={() => void guardarEdicionForma()}>
+                Guardar forma
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div id="panel" className={vista.tipo === 'lotes' ? 'chico' : undefined}>
@@ -369,7 +412,10 @@ export default function App() {
         {vista.tipo === 'detalle' && (
           <DetalleLote
             loteId={vista.loteId}
-            onVolver={() => setVista({ tipo: 'lotes' })}
+            onVolver={() => {
+              if (edicionForma) cancelarEdicionForma()
+              setVista({ tipo: 'lotes' })
+            }}
             onNuevoTrabajo={() =>
               setVista({
                 tipo: 'formTrabajo',
@@ -381,6 +427,8 @@ export default function App() {
               setVista({ tipo: 'formTrabajo', loteId: vista.loteId, trabajoId })
             }
             onVerInforme={verInforme}
+            onEditarForma={() => empezarEdicionForma(vista.loteId)}
+            editandoForma={edicionForma?.loteId === vista.loteId}
           />
         )}
         {vista.tipo === 'nuevoLote' && (

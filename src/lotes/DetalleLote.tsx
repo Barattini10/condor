@@ -29,12 +29,16 @@ export function DetalleLote({
   onNuevoTrabajo,
   onEditarTrabajo,
   onVerInforme,
+  onEditarForma,
+  editandoForma,
 }: {
   loteId: string
   onVolver: () => void
   onNuevoTrabajo: () => void
   onEditarTrabajo: (trabajoId: string) => void
   onVerInforme: (trabajoId: string) => void
+  onEditarForma: () => void
+  editandoForma: boolean
 }) {
   const { lotePorId, trabajosDeLote, borrarTrabajo, borrarLote, actualizarLote } =
     useBitacora()
@@ -291,10 +295,13 @@ export function DetalleLote({
             gap: 10,
           }}
         >
-          <button className="mini" onClick={empezarEdicion}>
+          <button className="mini" onClick={empezarEdicion} disabled={editandoForma}>
             Editar lote
           </button>
-          <button className="mini roja" onClick={onBorrarLote}>
+          <button className="mini" onClick={onEditarForma} disabled={editandoForma}>
+            {editandoForma ? 'Editando forma…' : 'Editar forma'}
+          </button>
+          <button className="mini roja" onClick={onBorrarLote} disabled={editandoForma}>
             Borrar este lote
           </button>
         </div>

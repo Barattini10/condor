@@ -33,6 +33,9 @@ export interface MapaHandle {
   deshacerPunto: () => void
   cerrarLote: () => void
   cancelarDibujo: () => void
+  empezarEdicionForma: (puntos: PuntoLatLng[]) => void
+  guardarEdicionForma: () => { puntos: PuntoLatLng[]; ha: number } | null
+  cancelarEdicionForma: () => void
   descargarZona: (
     onProgreso?: (p: ProgresoDescarga) => void,
   ) => Promise<ProgresoDescarga>
@@ -52,6 +55,7 @@ interface MapaProps {
   lotes: Lote[]
   lotesConTrabajos: Set<string>
   loteSeleccionadoId: string | null
+  loteEditandoId: string | null
   onSeleccionarLote: (id: string) => void
   onDibujoProgreso: (info: { puntos: number; ha: number }) => void
   onLoteDibujado: (puntos: PuntoLatLng[], ha: number) => void
@@ -66,10 +70,12 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
   const capasPorLoteRef = useRef<Record<string, L.Polygon>>({})
   const encuadreInicialRef = useRef(false)
 
-  // Estado del dibujo en curso (fuera de React: no necesita re-render).
-  const dibujandoRef = useRef(false)
+  // Estado del dibujo/edición en curso (fuera de React: no necesita re-render).
+  // 'dibujo': armando un lote nuevo punto a punto. 'edicion': ajustando la
+  // forma de un lote ya guardado (los puntos vienen todos puestos).
+  const modoRef = useRef<'dibujo' | 'edicion' | null>(null)
   const puntosRef = useRef<PuntoLatLng[]>([])
-  const marcasRef = useRef<L.CircleMarker[]>([])
+  const marcasRef = useRef<L.Marker[]>([])
   const lineaRef = useRef<L.Polygon | null>(null)
 
   // Callbacks siempre frescos, para no quedar con versiones viejas dentro
@@ -100,24 +106,51 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
     }
   }
 
+  /** Punto arrastrable: tomarlo y moverlo corrige el vértice; doble click lo
+   * borra (dejando al menos 3, lo mínimo para cerrar un lote). */
+  function crearMarcaPunto(ll: L.LatLngExpression): L.Marker {
+    const marca = L.marker(ll, {
+      draggable: true,
+      icon: L.divIcon({
+        className: 'punto-vertice',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      }),
+    })
+    marca.on('drag', () => {
+      const i = marcasRef.current.indexOf(marca)
+      if (i === -1) return
+      const p = marca.getLatLng()
+      puntosRef.current[i] = [p.lat, p.lng]
+      redibujarLinea()
+      avisarProgreso()
+    })
+    marca.on('dblclick', (e) => {
+      L.DomEvent.stopPropagation(e)
+      const i = marcasRef.current.indexOf(marca)
+      if (i === -1 || puntosRef.current.length <= 3) return
+      puntosRef.current.splice(i, 1)
+      marcasRef.current.splice(i, 1)
+      capaDibujoRef.current?.removeLayer(marca)
+      redibujarLinea()
+      avisarProgreso()
+    })
+    return marca
+  }
+
   function agregarPunto(ll: L.LatLng) {
     const capa = capaDibujoRef.current
     if (!capa) return
     puntosRef.current.push([ll.lat, ll.lng])
-    const marca = L.circleMarker(ll, {
-      radius: 6,
-      color: '#fff',
-      weight: 2,
-      fillColor: '#40673b',
-      fillOpacity: 1,
-    }).addTo(capa)
+    const marca = crearMarcaPunto(ll)
+    marca.addTo(capa)
     marcasRef.current.push(marca)
     redibujarLinea()
     avisarProgreso()
   }
 
   function limpiarDibujo() {
-    dibujandoRef.current = false
+    modoRef.current = null
     puntosRef.current = []
     marcasRef.current = []
     lineaRef.current = null
@@ -129,7 +162,7 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
     () => ({
       empezarDibujo() {
         limpiarDibujo()
-        dibujandoRef.current = true
+        modoRef.current = 'dibujo'
         avisarProgreso()
       },
       deshacerPunto() {
@@ -149,6 +182,30 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
         cbRef.current.onLoteDibujado(pts, ha)
       },
       cancelarDibujo() {
+        limpiarDibujo()
+      },
+      empezarEdicionForma(puntos) {
+        limpiarDibujo()
+        const capa = capaDibujoRef.current
+        if (!capa) return
+        modoRef.current = 'edicion'
+        puntosRef.current = puntos.map((p): PuntoLatLng => [p[0], p[1]])
+        puntosRef.current.forEach((p) => {
+          const marca = crearMarcaPunto(p)
+          marca.addTo(capa)
+          marcasRef.current.push(marca)
+        })
+        redibujarLinea()
+        avisarProgreso()
+      },
+      guardarEdicionForma() {
+        const pts = puntosRef.current.slice()
+        if (pts.length < 3) return null
+        const ha = hectareas(pts)
+        limpiarDibujo()
+        return { puntos: pts, ha }
+      },
+      cancelarEdicionForma() {
         limpiarDibujo()
       },
       async descargarZona(onProgreso) {
@@ -209,7 +266,7 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
     mapRef.current = map
 
     map.on('click', (e: L.LeafletMouseEvent) => {
-      if (dibujandoRef.current) agregarPunto(e.latlng)
+      if (modoRef.current === 'dibujo') agregarPunto(e.latlng)
     })
 
     const t = window.setTimeout(() => map.invalidateSize(), 200)
@@ -228,7 +285,7 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const { lotes, lotesConTrabajos, loteSeleccionadoId } = props
+  const { lotes, lotesConTrabajos, loteSeleccionadoId, loteEditandoId } = props
 
   // Redibujar los lotes cuando cambian.
   useEffect(() => {
@@ -240,6 +297,9 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
     capasPorLoteRef.current = {}
 
     lotes.forEach((l) => {
+      // El que se está editando se muestra con los puntos arrastrables
+      // (capaDibujoRef), no con su polígono fijo de siempre.
+      if (l.id === loteEditandoId) return
       const trabajado = lotesConTrabajos.has(l.id)
       const poly = L.polygon(l.puntos, {
         color: trabajado ? '#8fc07a' : '#d7e5d0',
@@ -265,16 +325,17 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
       }).addTo(capa)
     })
 
-    const seleccionada = loteSeleccionadoId
-      ? capasPorLoteRef.current[loteSeleccionadoId]
-      : null
+    const seleccionada =
+      loteSeleccionadoId && loteSeleccionadoId !== loteEditandoId
+        ? capasPorLoteRef.current[loteSeleccionadoId]
+        : null
     if (seleccionada) {
       try {
         map.fitBounds(seleccionada.getBounds().pad(0.4))
       } catch {
         /* bounds inválidos */
       }
-    } else if (lotes.length && !encuadreInicialRef.current) {
+    } else if (!loteEditandoId && lotes.length && !encuadreInicialRef.current) {
       encuadreInicialRef.current = true
       const todos: PuntoLatLng[] = []
       lotes.forEach((l) => l.puntos.forEach((p) => todos.push(p)))
@@ -284,7 +345,7 @@ export const Mapa = forwardRef<MapaHandle, MapaProps>(function Mapa(props, ref) 
         /* sin puntos */
       }
     }
-  }, [lotes, lotesConTrabajos, loteSeleccionadoId])
+  }, [lotes, lotesConTrabajos, loteSeleccionadoId, loteEditandoId])
 
   return <div id="mapa" ref={divRef} />
 })

@@ -19,8 +19,11 @@ export interface DatosNuevoLote {
 /** Campos editables de un trabajo (sin la metadata que maneja el store). */
 export type DatosTrabajo = Omit<Trabajo, 'id' | 'loteId' | 'updatedAt' | 'deleted'>
 
-/** Campos de un lote que se pueden editar después de creado (no la geometría). */
-export type DatosEdicionLote = Partial<Pick<Lote, 'nombre' | 'establecimiento' | 'cliente'>>
+/** Campos de un lote que se pueden editar después de creado: los datos y,
+ * desde "Editar forma", también la geometría (puntos + hectáreas). */
+export type DatosEdicionLote = Partial<
+  Pick<Lote, 'nombre' | 'establecimiento' | 'cliente' | 'puntos' | 'ha'>
+>
 
 export interface BitacoraApi {
   lotes: Lote[]
